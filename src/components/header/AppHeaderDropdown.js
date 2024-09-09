@@ -1,3 +1,4 @@
+// components/header/AppHeaderDropdown.js
 import React from 'react'
 import {
   CAvatar,
@@ -10,13 +11,6 @@ import {
   CDropdownToggle,
 } from '@coreui/react'
 import {
-  cilBell,
-  cilCreditCard,
-  cilCommentSquare,
-  cilEnvelopeOpen,
-  cilFile,
-  cilLockLocked,
-  cilSettings,
   cilTask,
   cilUser,
 } from '@coreui/icons'
@@ -49,4 +43,4 @@ const AppHeaderDropdown = () => {
   )
 }
 
-export default AppHeaderDropdown
+export default React.memo(AppHeaderDropdown)

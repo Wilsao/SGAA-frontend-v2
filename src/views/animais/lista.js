@@ -253,7 +253,7 @@ function Animais() {
                           color="warning"
                           size="sm"
                           className="m-1"
-                          to={`/animal/editar/${animal.id}`}
+                          to={`/animal/cadastro/${animal.id}`}
                           component={Link}
                         >
                           <CIcon icon={cilPencil} className="me-2" /> Editar

@@ -24,24 +24,7 @@ const _nav = [
     icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
     badge: {
       color: 'info',
-      // text: 'NEW',
     },
-  },
-  {
-    component: CNavTitle,
-    name: 'Theme',
-  },
-  {
-    component: CNavItem,
-    name: 'Colors',
-    to: '/theme/colors',
-    icon: <CIcon icon={cilDrop} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Typography',
-    to: '/theme/typography',
-    icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
   },
   {
     component: CNavTitle,
@@ -49,8 +32,14 @@ const _nav = [
   },
   {
     component: CNavItem,
-    name: 'Animais',
+    name: 'Lista de Animais',
     to: '/animais/lista',
+    icon: <CIcon icon={cilList} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Cadastro de Animais',
+    to: '/animais/cadastro',
     icon: <CIcon icon={cilList} customClassName="nav-icon" />,
   },
   {
