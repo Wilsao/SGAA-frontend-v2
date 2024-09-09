@@ -6,10 +6,15 @@ import { useSelector } from 'react-redux';
 import { CSpinner, useColorModes } from '@coreui/react';
 import './scss/style.scss';
 
-// Importa os componentes
-const Login = React.lazy(() => import('./views/pages/login/Login'));
-const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'));
-import ProtectedRoute from './components/ProtectedRoute'; // Importa o componente de rota protegida
+import ProtectedRoute from './components/ProtectedRoute'; // Componente de rota protegida
+
+// Importa os componentes das novas pastas organizadas
+const Home = React.lazy(() => import('./views/public/home/Home'));
+const Login = React.lazy(() => import('./views/public/login/Login'));
+const AdminLayout = React.lazy(() => import('./layout/AdminLayout'));
+const PublicLayout = React.lazy(() => import('./layout/PublicLayout'));
+const Page404 = React.lazy(() => import('./views/public/page404/Page404'));
+const Page500 = React.lazy(() => import('./views/public/page500/Page500'));
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme');
@@ -33,16 +38,26 @@ const App = () => {
     <HashRouter>
       <Suspense fallback={<div className="pt-3 text-center"><CSpinner color="primary" variant="grow" /></div>}>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          {/* Rota protegida: o usuário só pode acessar se estiver autenticado */}
+          {/* Rotas protegidas para a área administrativa com prefixo /admin */}
           <Route
-            path="*"
+            path="/admin/*"
             element={
               <ProtectedRoute>
-                <DefaultLayout />
+                <AdminLayout />
               </ProtectedRoute>
             }
           />
+
+          {/* Rotas públicas que usam o layout PublicLayout */}
+          <Route path="/" element={<PublicLayout />}>
+            {/* Definindo rotas públicas como filhos de PublicLayout */}
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            <Route path="404" element={<Page404 />} />
+            <Route path="500" element={<Page500 />} />
+            {/* Qualquer rota não definida vai para a página 404 */}
+            <Route path="*" element={<Page404 />} />
+          </Route>
         </Routes>
       </Suspense>
     </HashRouter>

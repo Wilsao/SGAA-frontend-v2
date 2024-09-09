@@ -1,4 +1,4 @@
-// components/AppContent.js
+// components/SiteContent.js
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { CContainer, CSpinner } from '@coreui/react';
@@ -6,7 +6,7 @@ import { CContainer, CSpinner } from '@coreui/react';
 // Importa a configuração das rotas
 import routes from '../routes';
 
-const AppContent = () => {
+const SiteContent = () => {
   return (
     <CContainer className="px-4" lg>
       <Suspense fallback={<CSpinner color="primary" />}>
@@ -22,11 +22,11 @@ const AppContent = () => {
               />
             ) : null
           )}
-          <Route path="/" element={<Navigate to="dashboard" replace />} />
+          <Route path="/" element={<Navigate to="home" replace />} />
         </Routes>
       </Suspense>
     </CContainer>
   );
 };
 
-export default React.memo(AppContent);
+export default React.memo(SiteContent);

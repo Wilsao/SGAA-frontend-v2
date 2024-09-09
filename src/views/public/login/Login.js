@@ -35,7 +35,7 @@ const Login = () => {
   useEffect(() => {
     // Se o usuário estiver autenticado, redireciona para o dashboard
     if (isAuthenticated) {
-      navigate('/dashboard'); // Redireciona para o dashboard
+      navigate('/admin/dashboard'); // Redireciona para o dashboard
     }
   }, [isAuthenticated, navigate]); // Dependências do useEffect
 
