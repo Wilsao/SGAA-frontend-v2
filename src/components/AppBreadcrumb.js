@@ -1,31 +1,37 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-
 import routes from '../routes';
 import { CBreadcrumb, CBreadcrumbItem } from '@coreui/react';
 
 const AppBreadcrumb = () => {
-  // Obtendo a localização atual, removendo o hash '#' da URL
   const currentLocation = useLocation().pathname;
 
-  // Função para obter o nome da rota com base no caminho
   const getRouteName = (pathname, routes) => {
-    const currentRoute = routes.find((route) => route.path === pathname);
-    return currentRoute ? currentRoute.name : false;
+    for (const route of routes) {
+      if (route.path === pathname) {
+        return route.name;
+      }
+      if (route.children) {
+        const matchingChildRoute = route.children.find((child) => child.path === pathname);
+        if (matchingChildRoute) {
+          return matchingChildRoute.name;
+        }
+      }
+    }
+    return false;
   };
 
-  // Função para gerar as breadcrumbs
   const getBreadcrumbs = (location) => {
     const breadcrumbs = [];
-    const paths = location.split('/').filter((path) => path); // Remove elementos vazios causados por '/'
+    const paths = location.split('/').filter((path) => path);
 
     paths.reduce((prev, curr, index) => {
       const currentPathname = `${prev}/${curr}`;
       const routeName = getRouteName(currentPathname.replace('/admin', ''), routes);
-      // console.log(currentPathname.replace('/admin/', ''))
+
       if (routeName) {
         breadcrumbs.push({
-          pathname: `#${currentPathname}`, // Adiciona o hash para o roteamento correto
+          pathname: `#${currentPathname}`,
           name: routeName,
           active: index + 1 === paths.length ? true : false,
         });
@@ -36,7 +42,6 @@ const AppBreadcrumb = () => {
     return breadcrumbs;
   };
 
-  // Gerando os breadcrumbs com base na localização atual
   const breadcrumbs = getBreadcrumbs(currentLocation);
 
   return (

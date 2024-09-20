@@ -1,4 +1,4 @@
-// src/views/pages/login/Login.js
+// src/views/public/login/Login.js
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -18,57 +18,91 @@ import {
 import CIcon from '@coreui/icons-react';
 import { cilLockLocked, cilUser } from '@coreui/icons';
 
-// Importa as ações diretamente do arquivo store.js
-import { loginUser, setAuthError } from '../../../store';
+import store, { loginUser, setAuthError } from '../../../store';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Hook para redirecionamento
+  const navigate = useNavigate();
 
-  // Seleciona o estado de autenticação e de erro do Redux
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const authError = useSelector((state) => state.auth.error);
 
-  // Verifica o estado de autenticação ao montar o componente
   useEffect(() => {
-    // Se o usuário estiver autenticado, redireciona para o dashboard
+    console.log();
     if (isAuthenticated) {
-      navigate('/admin/dashboard'); // Redireciona para o dashboard
+      if(store.getState().auth.role != 'admin'){
+        navigate('/home');
+      }
+      else{
+        navigate('/admin/dashboard');
+      }
     }
-  }, [isAuthenticated, navigate]); // Dependências do useEffect
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!username || !password) {
+    if (!email || !senha) {
       dispatch(setAuthError('Por favor, preencha todos os campos.'));
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:3001/login', {
+      console.log('Iniciando o processo de login...');
+      const response = await fetch('http://localhost:3001/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, senha }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Despacha a ação de login com os dados do usuário
-        dispatch(loginUser({ token: data.token, user: data.user }));
+        const token = data.token;
+        console.log('Login bem-sucedido, token recebido.');
+
+        const userResponse = await fetch('http://localhost:3001/usuario/email/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ email }),
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          console.log('Dados do usuário obtidos:', userData);
+
+          let role = 'user'; // Valor padrão
+          if (userData.usuario.tipo_usuario_id === 1) {
+            role = 'admin'; // Tem acesso à parte administrativa
+          }
+
+          dispatch(
+            loginUser({
+              token: token,
+              user: userData.usuario,
+              role: role,
+            })
+          );
+
+          navigate('/admin/dashboard');
+        } else {
+          dispatch(setAuthError('Erro ao obter dados do usuário.'));
+        }
       } else {
         dispatch(setAuthError(data.message || 'Erro ao efetuar login.'));
       }
     } catch (error) {
+      console.error('Erro no processo de login:', error);
       dispatch(setAuthError('Erro ao conectar ao servidor.'));
     }
   };
-
   return (
     <div className="min-vh-100 d-flex flex-row align-items-center">
       <CContainer>
@@ -85,11 +119,11 @@ const Login = () => {
                       <CIcon icon={cilUser} />
                     </CInputGroupText>
                     <CFormInput
-                      type="text"
-                      placeholder="Usuário"
-                      autoComplete="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      type="email"
+                      placeholder="Email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </CInputGroup>
                   <CInputGroup className="mb-4">
@@ -100,8 +134,8 @@ const Login = () => {
                       type="password"
                       placeholder="Senha"
                       autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={senha}
+                      onChange={(e) => setSenha(e.target.value)}
                     />
                   </CInputGroup>
                   <CRow>

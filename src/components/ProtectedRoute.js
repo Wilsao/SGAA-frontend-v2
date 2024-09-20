@@ -3,16 +3,19 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ element, roles }) => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const userRole = useSelector((state) => state.auth.role);
 
   if (!isAuthenticated) {
-    // Redireciona para a página de login se o usuário não estiver autenticado
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" />;
   }
 
-  // Renderiza o componente filho se o usuário estiver autenticado
-  return children;
+  if (roles && roles.length > 0 && !roles.includes(userRole)) {
+    return <Navigate to="/login" />;
+  }
+
+  return element;
 };
 
 export default ProtectedRoute;

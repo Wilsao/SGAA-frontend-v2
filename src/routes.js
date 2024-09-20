@@ -1,21 +1,72 @@
 // src/routes.js
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 
 // Admin
-const Dashboard = React.lazy(() => import('./views/admin/dashboard/Dashboard'));
-const Animais = React.lazy(() => import('./views/admin/animais/Lista'));
-const AnimaisCadastro = React.lazy(() => import('./views/admin/animais/AnimaisCadastro'));
+const DashboardMain = React.lazy(() => import('./views/admin/dashboard/DashboardMain'));
+const ArrecadacaoMain = React.lazy(() => import('./views/admin/arrecadacao/ArrecadacaoMain'));
+const ArrecadacaoForm = React.lazy(() => import('./views/admin/arrecadacao/ArrecadacaoForm'));
+const CastracaoMain = React.lazy(() => import('./views/admin/castracao/CastracaoMain'));
+const CastracaoForm = React.lazy(() => import('./views/admin/castracao/CastracaoForm'));
+const AnimalMain = React.lazy(() => import('./views/admin/animais/AnimalMain'));
+const AnimalForm = React.lazy(() => import('./views/admin/animais/AnimalForm'));
+const AnimalProntuario = React.lazy(() => import('./views/admin/animais/AnimalProntuario'));
+const EspecieMain = React.lazy(() => import('./views/admin/especie/EspecieMain'));
+const EspecieForm = React.lazy(() => import('./views/admin/especie/EspecieForm'));
+const UsuarioMain = React.lazy(() => import('./views/admin/usuario/UsuarioMain'));
+const UsuarioForm = React.lazy(() => import('./views/admin/usuario/UsuarioForm'));
+const CargoMain = React.lazy(() => import('./views/admin/cargo/CargoMain'));
+const CargoForm = React.lazy(() => import('./views/admin/cargo/CargoForm'));
 
 // Public
 const Home = React.lazy(() => import('./views/public/home/Home'));
-const Login = React.lazy(() => import('./views/public/login/Login'));
+const AnimaisView = React.lazy(() => import('./views/public/animais/AnimaisView'));
+const Page404 = React.lazy(() => import('./views/public/page404/Page404'));
+const Page500 = React.lazy(() => import('./views/public/page500/Page500'));
+const Unauthorized = React.lazy(() => import('./views/public/Unauthorized'));
 
 const routes = [
-  { path: '/home', exact: true, name: 'Home', element: <Home /> }, // Corrigido o nome da rota inicial
-  { path: '/login', name: 'Login', element: <Login /> },
-  { path: '/dashboard', name: 'Dashboard', element: <Dashboard /> },
-  { path: '/animais/lista', name: 'Lista de Animais', element: <Animais /> },
-  { path: '/animais/cadastro', name: 'Cadastro de Animais', element: <AnimaisCadastro /> }
+  {
+    path: '/',
+    children: [
+      { path: '/home', name: 'Home', element: <Home /> },
+      { path: 'animal/:id/', name: 'Animal', element: <AnimaisView /> },
+      { path: '404', name: 'Page 404', element: <Page404 /> },
+      { path: '500', name: 'Page 500', element: <Page500 /> },
+      { path: 'unauthorized', name: 'Unauthorized', element: <Unauthorized /> },
+      { path: '*', element: <Navigate to="/404" /> },
+    ],
+  },
+
+  {
+    path: '/admin',
+    children: [
+      { path: 'dashboard', name: 'Dashboard', element: <DashboardMain />, roles: ['admin'] },
+      { path: 'usuarios', name: 'Lista de Usuarios', element: <UsuarioMain />, roles: ['admin'] },
+      { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['admin'] },
+      { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['admin'] },
+      { path: 'animais', name: 'Lista de Animais', element: <AnimalMain />, roles: ['admin'] },
+      { path: 'animal/novo', name: 'Cadastro de Animais', element: <AnimalForm />, roles: ['admin'] },
+      { path: 'animal/editar/:id', name: 'Editar Animal', element: <AnimalForm />, roles: ['admin'] },
+      { path: 'animal/:id/prontuario', name: 'Editar Animal', element: <AnimalProntuario />, roles: ['admin'] },
+      { path: 'arrecadacoes', name: 'Eventos de Arrecadação', element: <ArrecadacaoMain />, roles: ['admin'] },
+      { path: 'arrecadacao/novo', name: 'Cadastrar Evento de Arrecadação', element: <ArrecadacaoForm />, roles: ['admin'] },
+      { path: 'arrecadacao/editar/:id', name: 'Editar Evento de Arrecadação', element: <ArrecadacaoForm />, roles: ['admin'] },
+      { path: 'castracoes', name: 'Eventos de Castração', element: <CastracaoMain />, roles: ['admin'] },
+      { path: 'castracao/novo', name: 'Cadastrar Evento de Castração', element: <CastracaoForm />, roles: ['admin'] },
+      { path: 'castracao/editar/:id', name: 'Editar Evento de Castração', element: <CastracaoForm />, roles: ['admin'] },
+      { path: 'especies', name: 'Lista de Espécies', element: <EspecieMain />, roles: ['admin'] },
+      { path: 'especie/novo', name: 'Cadastro de Espécie', element: <EspecieForm />, roles: ['admin'] },
+      { path: 'especie/editar/:id', name: 'Editar Espécie', element: <EspecieForm />, roles: ['admin'] },
+      { path: 'usuarios', name: 'Lista de Usuários', element: <UsuarioMain />, roles: ['admin'] },
+      { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['admin'] },
+      { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['admin'] },
+      { path: 'cargo', name: 'Lista de Cargos', element: <CargoMain />, roles: ['admin'] },
+      { path: 'cargo/novo', name: 'Cadastro de Cargo', element: <CargoForm />, roles: ['admin'] },
+      { path: 'cargo/editar/:id', name: 'Editar Cargo', element: <CargoForm />, roles: ['admin'] },
+      { path: '*', element: <Navigate to="/admin/dashboard" /> },
+    ],
+  },
 ];
 
 export default routes;

@@ -2,11 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
   CCard,
   CCardBody,
-  CCardHeader,
   CButton,
   CRow,
   CCol,
-  CForm,
   CFormInput,
   CFormSelect,
   CTable,
@@ -20,12 +18,18 @@ import {
   CModalTitle,
   CModalBody,
   CModalFooter,
-} from '@coreui/react';
+  CDropdown,
+  CDropdownToggle,
+  CDropdownMenu,
+  CDropdownItem,
+} from "@coreui/react";
 import { Link } from "react-router-dom";
-import CIcon from '@coreui/icons-react';
-import { cilPencil, cilTrash, cilZoom } from '@coreui/icons';
-
-function Animais() {
+import CIcon from "@coreui/icons-react";
+import { cilPencil, cilTrash, cilZoom, cilOptions} from "@coreui/icons";
+import { male } from 'src/assets/svg/male'
+import { female } from 'src/assets/svg/female'
+import authFetch from "../../../utils/authFetch";
+const AnimalMain = () => {
   const [animais, setAnimais] = useState([]);
   const [filtros, setFiltros] = useState({
     nome: "",
@@ -35,27 +39,25 @@ function Animais() {
     sexo: "",
     adocao: "",
   });
-
   const [numAnimaisEncontrados, setNumAnimaisEncontrados] = useState(0);
-  const [mostrarLista, setMostrarLista] = useState(true);
   const [showConfirmAlert, setShowConfirmAlert] = useState(false);
   const [animalToDelete, setAnimalToDelete] = useState(null);
   const [especies, setEspecies] = useState([]);
 
   useEffect(() => {
-    const fetchEspecies = async () => {
+    const fetchData = async (url, setState, errorMsg) => {
       try {
-        const response = await fetch("http://localhost:3001/especie");
-        if (!response.ok) {
-          throw new Error('Erro ao buscar espécie');
-        }
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(errorMsg);
         const data = await response.json();
-        setEspecies(data);
+        setState(data);
       } catch (error) {
-        console.error('Erro ao buscar espécie:', error);
+        console.error(errorMsg, error);
       }
     };
-    fetchEspecies();
+
+    fetchData("http://localhost:3001/especie", setEspecies, "Erro ao buscar espécie");
+    fetchData("http://localhost:3001/animal", setAnimais, "Erro ao buscar animais");
   }, []);
 
   const especiesMap = especies.reduce((acc, especie) => {
@@ -63,38 +65,22 @@ function Animais() {
     return acc;
   }, {});
 
-  useEffect(() => {
-    const fetchAnimais = async () => {
-      try {
-        const response = await fetch('http://localhost:3001/animal');
-        if (!response.ok) {
-          throw new Error('Erro ao buscar animais');
-        }
-        const data = await response.json();
-        setAnimais(data);
-      } catch (error) {
-        console.error('Erro ao buscar animais:', error);
-      }
-    };
-    fetchAnimais();
-  }, []);
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFiltros({ ...filtros, [name]: value });
+    setFiltros((prevState) => ({ ...prevState, [name]: value }));
   };
 
   const filtrarAnimais = (animais) => {
-    return animais.filter(
-      (animal) =>
-        (filtros.nome === "" ||
-          animal.nome.toLowerCase().includes(filtros.nome.toLowerCase())) &&
+    return animais.filter((animal) => {
+      return (
+        (filtros.nome === "" || animal.nome.toLowerCase().includes(filtros.nome.toLowerCase())) &&
         (filtros.numero_baia === "" || animal.numero_baia.toLowerCase().includes(filtros.numero_baia.toLowerCase())) &&
         (filtros.castracao === "" || animal.castracao === parseInt(filtros.castracao)) &&
         (filtros.especie === "" || animal.especie === parseInt(filtros.especie)) &&
         (filtros.sexo === "" || animal.sexo === filtros.sexo) &&
         (filtros.adocao === "" || animal.adocao === parseInt(filtros.adocao))
-    );
+      );
+    });
   };
 
   const animaisFiltrados = filtrarAnimais(animais);
@@ -105,16 +91,14 @@ function Animais() {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/animal/${animalToDelete}`, {
-        method: 'DELETE',
+      const response = await authFetch(`http://localhost:3001/animal/${animalToDelete}`, {
+        method: "DELETE",
       });
-      if (!response.ok) {
-        throw new Error('Erro ao remover animal');
-      }
-      setAnimais(animais.filter((animal) => animal.id !== animalToDelete));
+      if (!response.ok) throw new Error("Erro ao remover animal");
+      setAnimais((prevState) => prevState.filter((animal) => animal.id !== animalToDelete));
       setShowConfirmAlert(false);
     } catch (error) {
-      console.error('Erro ao remover animal:', error);
+      console.error("Erro ao remover animal:", error);
     }
   };
 
@@ -130,11 +114,12 @@ function Animais() {
           <h2>Animais</h2>
         </CCol>
         <CCol className="text-end">
-          <CButton as={Link} to="/animal/novo" color="success">
+          <CButton as={Link} to="/admin/animal/novo" color="success">
             Cadastrar animal +
           </CButton>
         </CCol>
       </CRow>
+
 
       <CRow className="mt-2">
         <CCol lg="2">
@@ -207,9 +192,7 @@ function Animais() {
           </CFormSelect>
         </CCol>
       </CRow>
-      <p className="mb-1 mt-2">
-        Foram encontrados {numAnimaisEncontrados} animais:
-      </p>
+      <p className="mb-1 mt-2">Foram encontrados {numAnimaisEncontrados} animais:</p>
       <CRow className="mt-2">
         <CCol xs={12}>
           <CCard>
@@ -218,13 +201,13 @@ function Animais() {
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell>ID</CTableHeaderCell>
-                    <CTableHeaderCell>Baia</CTableHeaderCell>
+                    <CTableHeaderCell>Adoção</CTableHeaderCell>
                     <CTableHeaderCell>Nome</CTableHeaderCell>
-                    <CTableHeaderCell>Espécie</CTableHeaderCell>
                     <CTableHeaderCell>Sexo</CTableHeaderCell>
+                    <CTableHeaderCell>Baia</CTableHeaderCell>
+                    <CTableHeaderCell>Espécie</CTableHeaderCell>
                     <CTableHeaderCell>Castrado</CTableHeaderCell>
                     <CTableHeaderCell>Pelagem</CTableHeaderCell>
-                    <CTableHeaderCell>Disp. adoção</CTableHeaderCell>
                     <CTableHeaderCell>Ações</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
@@ -232,40 +215,36 @@ function Animais() {
                   {animaisFiltrados.map((animal) => (
                     <CTableRow key={animal.id}>
                       <CTableDataCell>{animal.id}</CTableDataCell>
-                      <CTableDataCell>{animal.numero_baia}</CTableDataCell>
+                      <CTableDataCell>{animal.adocao === 1 ? "Disponível" : "Indisponível"}</CTableDataCell>
                       <CTableDataCell>{animal.nome}</CTableDataCell>
+                      <CTableDataCell>{animal.sexo === 'Macho' ? <CIcon customClassName="sidebar-brand-narrow" icon={male} height={24} /> : <CIcon customClassName="sidebar-brand-narrow" icon={female} height={24} />}</CTableDataCell>
+                      <CTableDataCell>{animal.numero_baia}</CTableDataCell>
                       <CTableDataCell>{especiesMap[animal.especie]}</CTableDataCell>
-                      <CTableDataCell>{animal.sexo}</CTableDataCell>
                       <CTableDataCell>{animal.castracao === 1 ? "Sim" : "Não"}</CTableDataCell>
                       <CTableDataCell>{animal.cor_pelagem}</CTableDataCell>
-                      <CTableDataCell>{animal.adocao === 1 ? "Sim" : "Não"}</CTableDataCell>
                       <CTableDataCell>
-                        <CButton
-                          color="primary"
-                          size="sm"
-                          className="m-1"
-                          to={`/animal/${animal.id}`}
-                          component={Link}
-                        >
-                          <CIcon icon={cilZoom} className="me-2" /> Visualizar
-                        </CButton>
-                        <CButton
-                          color="warning"
-                          size="sm"
-                          className="m-1"
-                          to={`/animal/cadastro/${animal.id}`}
-                          component={Link}
-                        >
-                          <CIcon icon={cilPencil} className="me-2" /> Editar
-                        </CButton>
-                        <CButton
-                          color="danger"
-                          size="sm"
-                          className="m-1"
-                          onClick={() => confirmDelete(animal.id)}
-                        >
-                          <CIcon icon={cilTrash} className="me-2" /> Remover
-                        </CButton>
+                        <CDropdown>
+                          <CDropdownToggle color="secondary">
+                            <CIcon icon={cilOptions} />
+                          </CDropdownToggle>
+                          <CDropdownMenu>
+                            <CDropdownItem href={`#/animal/${animal.id}`} component={Link}>
+                              Ver detalhes
+                            </CDropdownItem>
+                            <CDropdownItem href={`#/admin/animal/editar/${animal.id}`} component={Link}>
+                              Editar
+                            </CDropdownItem>
+                            <CDropdownItem href={`#/admin/animal/${animal.id}/prontuario/`} component={Link}>
+                              Prontuário
+                            </CDropdownItem>
+                            <CDropdownItem href={`#/admin/animal/cuidado/${animal.id}`} component={Link}>
+                              Registrar cuidado
+                            </CDropdownItem>
+                            <CDropdownItem onClick={() => confirmDelete(animal.id)}>
+                              Excluir
+                            </CDropdownItem>
+                          </CDropdownMenu>
+                        </CDropdown>
                       </CTableDataCell>
                     </CTableRow>
                   ))}
@@ -276,10 +255,7 @@ function Animais() {
         </CCol>
       </CRow>
 
-      <CModal
-        visible={showConfirmAlert}
-        onClose={() => setShowConfirmAlert(false)}
-      >
+      <CModal visible={showConfirmAlert} onClose={() => setShowConfirmAlert(false)}>
         <CModalHeader closeButton>
           <CModalTitle>Confirmação</CModalTitle>
         </CModalHeader>
@@ -297,6 +273,6 @@ function Animais() {
       </CModal>
     </>
   );
-}
+};
 
-export default Animais;
+export default AnimalMain;

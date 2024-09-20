@@ -1,13 +1,13 @@
-// src/views/pages/page404/Page404.js
+// src/views/public/page404/Page404.js
 import React from 'react';
 import { CButton } from '@coreui/react';
 import { useNavigate } from 'react-router-dom';
 
 const Page404 = () => {
-  const navigate = useNavigate(); // Hook para redirecionamento
+  const navigate = useNavigate();
 
   const handleBackToHome = () => {
-    navigate('/'); // Redireciona para a página inicial ou outra rota desejada
+    navigate('/');
   };
 
   return (

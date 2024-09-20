@@ -1,8 +1,11 @@
 // src/store.js
-
 import { configureStore, createSlice } from '@reduxjs/toolkit';
 
-// Slice para gerenciar o estado da interface do usuário (UI)
+// (temporário)Ver o que está no localStorage na hora que recarrega a página
+console.log(localStorage.getItem('token'))
+console.log(localStorage.getItem('user'))
+console.log(localStorage.getItem('role'))
+
 const uiSlice = createSlice({
   name: 'ui',
   initialState: {
@@ -11,7 +14,7 @@ const uiSlice = createSlice({
   },
   reducers: {
     set: (state, action) => {
-      return { ...state, ...action.payload }; // Atualiza o estado de acordo com o payload da ação
+      return { ...state, ...action.payload };
     },
   },
 });
@@ -20,39 +23,49 @@ const uiSlice = createSlice({
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    isAuthenticated: true,
-    token: null,
-    user: null,
+    isAuthenticated: !!localStorage.getItem('token'),
+    token: localStorage.getItem('token'),
+    user: JSON.parse(localStorage.getItem('user')) || null,
+    role: localStorage.getItem('role') || 'guest',
     error: null,
   },
   reducers: {
     loginUser: (state, action) => {
       state.isAuthenticated = true;
       state.token = action.payload.token;
-      state.user = action.payload.user; // Armazena dados adicionais do usuário
-      state.error = null; // Limpa erros anteriores
+      state.user = action.payload.user;
+      state.role = action.payload.role;
+      state.error = null;
+
+      localStorage.setItem('token', action.payload.token);
+      localStorage.setItem('user', action.payload.user.id);
+      localStorage.setItem('role', action.payload.role);
+
     },
     logoutUser: (state) => {
       state.isAuthenticated = false;
       state.token = null;
       state.user = null;
+      state.role = 'guest';
       state.error = null;
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
     },
     setAuthError: (state, action) => {
-      state.error = action.payload; // Armazena mensagem de erro
+      state.error = action.payload;
     },
   },
 });
 
-// Exporta as ações geradas automaticamente pelos slices
 export const { set } = uiSlice.actions;
 export const { loginUser, logoutUser, setAuthError } = authSlice.actions;
 
-// Configura o store usando configureStore do Redux Toolkit
 const store = configureStore({
   reducer: {
-    ui: uiSlice.reducer, // Registra o slice da interface do usuário
-    auth: authSlice.reducer, // Registra o slice de autenticação
+    ui: uiSlice.reducer,
+    auth: authSlice.reducer,
   },
 });
 

@@ -1,13 +1,13 @@
-// src/views/pages/page500/Page500.js
+// src/views/public/page500/Page500.js
 import React from 'react';
 import { CButton } from '@coreui/react';
 import { useNavigate } from 'react-router-dom';
 
 const Page500 = () => {
-  const navigate = useNavigate(); // Hook para redirecionamento
+  const navigate = useNavigate();
 
   const handleBackToHome = () => {
-    navigate('/'); // Redireciona para a página inicial ou outra rota desejada
+    navigate('/');
   };
 
   return (
