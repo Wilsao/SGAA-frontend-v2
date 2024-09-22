@@ -25,8 +25,8 @@ function UsuarioForm() {
     nome: '',
     email: '',
     senha: '',
-    cargo: '',
-    ativo: true,
+    tipo_usuario_id: '',
+    status: 1,
   });
   const [roles, setRoles] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
@@ -35,7 +35,7 @@ function UsuarioForm() {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await authFetch('http://localhost:3001/role', { method: 'GET' });
+        const response = await authFetch('http://localhost:3001/tipousuario', { method: 'GET' });
         if (!response.ok) {
           throw new Error('Erro ao buscar cargos');
         }
@@ -51,7 +51,7 @@ function UsuarioForm() {
   }, []);
 
   useEffect(() => {
-    if (id) {
+    if (id && roles.length > 0) {
       const fetchUser = async () => {
         try {
           const response = await authFetch(`http://localhost:3001/usuario/${id}`, { method: 'GET' });
@@ -59,7 +59,11 @@ function UsuarioForm() {
             throw new Error('Erro ao buscar usuário');
           }
           const data = await response.json();
-          setUser(data);
+          const tipo = roles.find(role => role.nome === data.tipo);
+          setUser({
+            ...data,
+            tipo_usuario_id: tipo ? tipo.id : '',
+          });
         } catch (error) {
           console.error('Erro ao buscar usuário:', error);
           setErrorMessage('Erro ao buscar usuário.');
@@ -67,7 +71,7 @@ function UsuarioForm() {
       };
       fetchUser();
     }
-  }, [id]);
+  }, [id, roles]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -90,9 +94,7 @@ function UsuarioForm() {
         throw new Error('Erro ao salvar usuário');
       }
       setSuccessMessage(`Usuário ${id ? 'atualizado' : 'cadastrado'} com sucesso!`);
-      setTimeout(() => {
-        navigate('/usuarios');
-      }, 2000);
+
     } catch (error) {
       console.error('Erro ao salvar usuário:', error);
       setErrorMessage('Erro ao salvar usuário.');
@@ -159,14 +161,14 @@ function UsuarioForm() {
                   <CCol md={6}>
                     <CFormLabel>Cargo</CFormLabel>
                     <CFormSelect
-                      name="cargo"
-                      value={user.cargo}
+                      name="tipo_usuario_id"
+                      value={user.tipo_usuario_id} // Usando o tipo_usuario_id como valor
                       onChange={handleChange}
                       required
                     >
                       <option value="">Selecione um cargo</option>
                       {roles.map((role) => (
-                        <option key={role.id} value={role.nome}>
+                        <option key={role.id} value={role.id}>
                           {role.nome}
                         </option>
                       ))}
@@ -175,20 +177,21 @@ function UsuarioForm() {
                   <CCol md={6}>
                     <CFormLabel>Status</CFormLabel>
                     <CFormSelect
-                      name="ativo"
-                      value={user.ativo}
+                      name="status"
+                      value={user.status}
                       onChange={handleChange}
                     >
                       <option value={true}>Ativo</option>
                       <option value={false}>Inativo</option>
                     </CFormSelect>
+
                   </CCol>
                 </CRow>
                 <CButton color="primary" type="submit" className="me-2">
                   <CIcon icon={cilSave} className="me-1" />
                   {id ? 'Atualizar' : 'Cadastrar'}
                 </CButton>
-                <CButton color="secondary" onClick={() => navigate('/usuarios')}>
+                <CButton color="secondary" onClick={() => navigate('/admin/usuarios')}>
                   <CIcon icon={cilBan} className="me-1" />
                   Cancelar
                 </CButton>

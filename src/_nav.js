@@ -18,7 +18,7 @@ import { CNavItem, CNavTitle } from '@coreui/react';
 export const nav_public = [
   {
     component: CNavItem,
-    name: 'Home',
+    name: 'Animais disponíveis',
     to: '/home',
     icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
   },
@@ -98,7 +98,7 @@ export const nav_admin = [
 ];
 
 export const getCombinedNav = (isAuthenticated, role) => {
-  if (isAuthenticated && role === 'admin') {
+  if (isAuthenticated && role === 'Administrador') {
     return [...nav_admin, ...nav_public];
   }
   return nav_public;

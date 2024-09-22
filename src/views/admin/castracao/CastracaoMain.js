@@ -219,7 +219,7 @@ function CastracaoMain() {
                             <td>{evento.local_evento}</td>
                             <td>{evento.descricao}</td>
                             <td className="d-flex align-items-center">
-                              <CButton color="primary" to={`/castracao/editar/${evento.id}`} component={Link} className="m-1">
+                              <CButton color="primary" href={`/#/admin/castracao/editar/${evento.id}`} component={Link} className="m-1">
                                 Editar <CIcon icon={cilPencil} />
                               </CButton>
                               <CButton color="danger" onClick={() => handleShowModal(evento.id)} className="m-1">

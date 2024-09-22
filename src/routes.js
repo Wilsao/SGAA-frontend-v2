@@ -7,6 +7,8 @@ const DashboardMain = React.lazy(() => import('./views/admin/dashboard/Dashboard
 const ArrecadacaoMain = React.lazy(() => import('./views/admin/arrecadacao/ArrecadacaoMain'));
 const ArrecadacaoForm = React.lazy(() => import('./views/admin/arrecadacao/ArrecadacaoForm'));
 const CastracaoMain = React.lazy(() => import('./views/admin/castracao/CastracaoMain'));
+// const CastracaoCreate = React.lazy(() => import('./views/admin/castracao/CastracaoCreate'));
+// const CastracaoEdit = React.lazy(() => import('./views/admin/castracao/CastracaoEdit'));
 const CastracaoForm = React.lazy(() => import('./views/admin/castracao/CastracaoForm'));
 const AnimalMain = React.lazy(() => import('./views/admin/animais/AnimalMain'));
 const AnimalForm = React.lazy(() => import('./views/admin/animais/AnimalForm'));
@@ -41,29 +43,31 @@ const routes = [
   {
     path: '/admin',
     children: [
-      { path: 'dashboard', name: 'Dashboard', element: <DashboardMain />, roles: ['admin'] },
-      { path: 'usuarios', name: 'Lista de Usuarios', element: <UsuarioMain />, roles: ['admin'] },
-      { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['admin'] },
-      { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['admin'] },
-      { path: 'animais', name: 'Lista de Animais', element: <AnimalMain />, roles: ['admin'] },
-      { path: 'animal/novo', name: 'Cadastro de Animais', element: <AnimalForm />, roles: ['admin'] },
-      { path: 'animal/editar/:id', name: 'Editar Animal', element: <AnimalForm />, roles: ['admin'] },
-      { path: 'animal/:id/prontuario', name: 'Editar Animal', element: <AnimalProntuario />, roles: ['admin'] },
-      { path: 'arrecadacoes', name: 'Eventos de Arrecadação', element: <ArrecadacaoMain />, roles: ['admin'] },
-      { path: 'arrecadacao/novo', name: 'Cadastrar Evento de Arrecadação', element: <ArrecadacaoForm />, roles: ['admin'] },
-      { path: 'arrecadacao/editar/:id', name: 'Editar Evento de Arrecadação', element: <ArrecadacaoForm />, roles: ['admin'] },
-      { path: 'castracoes', name: 'Eventos de Castração', element: <CastracaoMain />, roles: ['admin'] },
-      { path: 'castracao/novo', name: 'Cadastrar Evento de Castração', element: <CastracaoForm />, roles: ['admin'] },
-      { path: 'castracao/editar/:id', name: 'Editar Evento de Castração', element: <CastracaoForm />, roles: ['admin'] },
-      { path: 'especies', name: 'Lista de Espécies', element: <EspecieMain />, roles: ['admin'] },
-      { path: 'especie/novo', name: 'Cadastro de Espécie', element: <EspecieForm />, roles: ['admin'] },
-      { path: 'especie/editar/:id', name: 'Editar Espécie', element: <EspecieForm />, roles: ['admin'] },
-      { path: 'usuarios', name: 'Lista de Usuários', element: <UsuarioMain />, roles: ['admin'] },
-      { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['admin'] },
-      { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['admin'] },
-      { path: 'cargo', name: 'Lista de Cargos', element: <CargoMain />, roles: ['admin'] },
-      { path: 'cargo/novo', name: 'Cadastro de Cargo', element: <CargoForm />, roles: ['admin'] },
-      { path: 'cargo/editar/:id', name: 'Editar Cargo', element: <CargoForm />, roles: ['admin'] },
+      { path: 'dashboard', name: 'Dashboard', element: <DashboardMain />, roles: ['Administrador'] },
+      { path: 'usuarios', name: 'Lista de Usuarios', element: <UsuarioMain />, roles: ['Administrador'] },
+      { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['Administrador'] },
+      { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['Administrador'] },
+      { path: 'animais', name: 'Lista de Animais', element: <AnimalMain />, roles: ['Administrador'] },
+      { path: 'animal/novo', name: 'Cadastro de Animais', element: <AnimalForm />, roles: ['Administrador'] },
+      { path: 'animal/editar/:id', name: 'Editar Animal', element: <AnimalForm />, roles: ['Administrador'] },
+      { path: 'animal/:id/prontuario', name: 'Editar Animal', element: <AnimalProntuario />, roles: ['Administrador'] },
+      { path: 'arrecadacoes', name: 'Eventos de Arrecadação', element: <ArrecadacaoMain />, roles: ['Administrador'] },
+      { path: 'arrecadacao/novo', name: 'Cadastrar Evento de Arrecadação', element: <ArrecadacaoForm />, roles: ['Administrador'] },
+      { path: 'arrecadacao/editar/:id', name: 'Editar Evento de Arrecadação', element: <ArrecadacaoForm />, roles: ['Administrador'] },
+      { path: 'castracoes', name: 'Eventos de Castração', element: <CastracaoMain />, roles: ['Administrador'] },
+      { path: 'castracao/novo', name: 'Cadastrar Evento de Castração', element: <CastracaoForm />, roles: ['Administrador'] },
+      { path: 'castracao/editar/:id', name: 'Editar Evento de Castração', element: <CastracaoForm />, roles: ['Administrador'] },
+      // { path: 'castracao/novo', name: 'Cadastrar Evento de Castração', element: <CastracaoCreate />, roles: ['Administrador'] },
+      // { path: 'castracao/editar/:id', name: 'Editar Evento de Castração', element: <CastracaoEdit />, roles: ['Administrador'] },
+      { path: 'especies', name: 'Lista de Espécies', element: <EspecieMain />, roles: ['Administrador'] },
+      { path: 'especie/novo', name: 'Cadastro de Espécie', element: <EspecieForm />, roles: ['Administrador'] },
+      { path: 'especie/editar/:id', name: 'Editar Espécie', element: <EspecieForm />, roles: ['Administrador'] },
+      { path: 'usuarios', name: 'Lista de Usuários', element: <UsuarioMain />, roles: ['Administrador'] },
+      { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['Administrador'] },
+      { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['Administrador'] },
+      { path: 'cargo', name: 'Lista de Cargos', element: <CargoMain />, roles: ['Administrador'] },
+      { path: 'cargo/novo', name: 'Cadastro de Cargo', element: <CargoForm />, roles: ['Administrador'] },
+      { path: 'cargo/editar/:id', name: 'Editar Cargo', element: <CargoForm />, roles: ['Administrador'] },
       { path: '*', element: <Navigate to="/admin/dashboard" /> },
     ],
   },

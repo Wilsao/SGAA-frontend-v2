@@ -32,7 +32,7 @@ const Login = () => {
   useEffect(() => {
     console.log();
     if (isAuthenticated) {
-      if(store.getState().auth.role != 'admin'){
+      if(store.getState().auth.role != 'Administrador'){
         navigate('/home');
       }
       else{
@@ -78,16 +78,11 @@ const Login = () => {
           const userData = await userResponse.json();
           console.log('Dados do usuário obtidos:', userData);
 
-          let role = 'user'; // Valor padrão
-          if (userData.usuario.tipo_usuario_id === 1) {
-            role = 'admin'; // Tem acesso à parte administrativa
-          }
-
           dispatch(
             loginUser({
               token: token,
               user: userData.usuario,
-              role: role,
+              role: userData.usuario.tipo,
             })
           );
 

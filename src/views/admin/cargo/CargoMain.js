@@ -105,7 +105,7 @@ function CargoMain() {
                   <td className="d-flex align-items-center">
                     <CButton
                       color="primary"
-                      to={`/cargos/editar/${role.id}`}
+                      href={`#/admin/cargo/editar/${role.id}`}
                       component={Link}
                       className="me-2"
                     >

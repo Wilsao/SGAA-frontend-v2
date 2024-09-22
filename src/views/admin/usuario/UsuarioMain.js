@@ -34,7 +34,7 @@ function UsuarioMain() {
       try {
         const [usersResponse, rolesResponse] = await Promise.all([
           authFetch('http://localhost:3001/usuario', { method: 'GET' }),
-          authFetch('http://localhost:3001/role', { method: 'GET' }),
+          authFetch('http://localhost:3001/tipousuario', { method: 'GET' }),
         ]);
 
         if (!usersResponse.ok || !rolesResponse.ok) {
@@ -50,7 +50,7 @@ function UsuarioMain() {
         rolesData.forEach((role) => {
           rolesMap[role.id] = role.nome;
         });
-
+        console.log(usersData);
         setRoles(rolesMap);
         setUsers(usersData);
       } catch (error) {
@@ -79,7 +79,7 @@ function UsuarioMain() {
   const handleToggleStatus = async (id) => {
     try {
       const user = users.find((u) => u.id === id);
-      const updatedUser = { ...user, ativo: !user.ativo };
+      const updatedUser = { ...user, status: !user.status };
       const response = await authFetch(`http://localhost:3001/usuario/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -130,7 +130,7 @@ function UsuarioMain() {
           <h2>Usuários</h2>
         </CCol>
         <CCol className="text-end">
-          <CButton color="success" to="#/admin/usuario/novo" component={Link}>
+          <CButton color="success" href="#/admin/usuario/novo" component={Link}>
             Cadastrar Usuário +
           </CButton>
         </CCol>
@@ -154,24 +154,24 @@ function UsuarioMain() {
                   <td>{user.id}</td>
                   <td>{user.nome}</td>
                   <td>{user.email}</td>
-                  <td>{user.cargo}</td>
-                  <td>{user.ativo ? 'Ativo' : 'Inativo'}</td>
+                  <td>{user.tipo}</td>
+                  <td>{user.status == 1 ? 'Ativo' : 'Inativo'}</td>
                   <td className="d-flex align-items-center">
                     <CButton
                       color="primary"
-                      to={`/usuarios/editar/${user.id}`}
+                      href={`/#/admin/usuario/editar/${user.id}`}
                       component={Link}
                       className="me-2"
                     >
                       <CIcon icon={cilPencil} /> Editar
                     </CButton>
                     <CButton
-                      color={user.ativo ? 'warning' : 'success'}
+                      color={user.status ? 'warning' : 'success'}
                       onClick={() => handleShowStatusModal(user.id)}
                       className="me-2"
                     >
-                      <CIcon icon={user.ativo ? cilLockLocked : cilLockUnlocked} />{' '}
-                      {user.ativo ? 'Desativar' : 'Ativar'}
+                      <CIcon icon={user.status ? cilLockLocked : cilLockUnlocked} />{' '}
+                      {user.status ? 'Desativar' : 'Ativar'}
                     </CButton>
                     <CButton color="danger" onClick={() => handleShowDeleteModal(user.id)}>
                       <CIcon icon={cilTrash} /> Excluir
@@ -203,11 +203,11 @@ function UsuarioMain() {
       {/* Modal de Ativar/Desativar */}
       <CModal visible={showStatusModal} onClose={handleCloseStatusModal}>
         <CModalHeader closeButton>
-          <CModalTitle>Confirmar {users.find((u) => u.id === userIdToToggleStatus)?.ativo ? 'Desativação' : 'Ativação'}</CModalTitle>
+          <CModalTitle>Confirmar {users.find((u) => u.id === userIdToToggleStatus)?.status ? 'Desativação' : 'Ativação'}</CModalTitle>
         </CModalHeader>
         <CModalBody>
           Tem certeza de que deseja{' '}
-          {users.find((u) => u.id === userIdToToggleStatus)?.ativo ? 'desativar' : 'ativar'} este
+          {users.find((u) => u.id === userIdToToggleStatus)?.status ? 'desativar' : 'ativar'} este
           usuário?
         </CModalBody>
         <CModalFooter>
@@ -215,10 +215,10 @@ function UsuarioMain() {
             Cancelar
           </CButton>
           <CButton
-            color={users.find((u) => u.id === userIdToToggleStatus)?.ativo ? 'warning' : 'success'}
+            color={users.find((u) => u.id === userIdToToggleStatus)?.status ? 'warning' : 'success'}
             onClick={() => handleToggleStatus(userIdToToggleStatus)}
           >
-            {users.find((u) => u.id === userIdToToggleStatus)?.ativo ? 'Desativar' : 'Ativar'}
+            {users.find((u) => u.id === userIdToToggleStatus)?.status ? 'Desativar' : 'Ativar'}
           </CButton>
         </CModalFooter>
       </CModal>

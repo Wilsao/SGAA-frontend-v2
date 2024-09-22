@@ -7,7 +7,7 @@ const Page404 = () => {
   const navigate = useNavigate();
 
   const handleBackToHome = () => {
-    navigate('/');
+    navigate('/home');
   };
 
   return (
