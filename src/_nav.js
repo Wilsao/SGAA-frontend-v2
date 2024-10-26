@@ -98,7 +98,7 @@ export const nav_admin = [
 ];
 
 export const getCombinedNav = (isAuthenticated, role) => {
-  if (isAuthenticated && role === 'Administrador') {
+  if (isAuthenticated && role === '1') {
     return [...nav_admin, ...nav_public];
   }
   return nav_public;

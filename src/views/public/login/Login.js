@@ -32,7 +32,7 @@ const Login = () => {
   useEffect(() => {
     console.log();
     if (isAuthenticated) {
-      if(store.getState().auth.role != 'Administrador'){
+      if(store.getState().auth.role != 1){
         navigate('/home');
       }
       else{
@@ -81,8 +81,8 @@ const Login = () => {
           dispatch(
             loginUser({
               token: token,
-              user: userData.usuario,
-              role: userData.usuario.tipo,
+              user: userData.id,
+              role: userData.tipo_usuario_id,
             })
           );
 

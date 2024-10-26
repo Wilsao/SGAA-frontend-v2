@@ -26,7 +26,7 @@ const authSlice = createSlice({
     isAuthenticated: !!localStorage.getItem('token'),
     token: localStorage.getItem('token'),
     user: JSON.parse(localStorage.getItem('user')) || null,
-    role: localStorage.getItem('role') || 'guest',
+    role: localStorage.getItem('role') || 3,
     error: null,
   },
   reducers: {
@@ -38,7 +38,7 @@ const authSlice = createSlice({
       state.error = null;
 
       localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('user', action.payload.user.id);
+      localStorage.setItem('user', action.payload.user);
       localStorage.setItem('role', action.payload.role);
 
     },
@@ -46,7 +46,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.token = null;
       state.user = null;
-      state.role = 'guest';
+      state.role = 3;
       state.error = null;
 
       localStorage.removeItem('token');
