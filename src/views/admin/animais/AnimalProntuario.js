@@ -22,115 +22,144 @@ import {
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilSave, cilTrash, cilPen, cilCheckCircle } from '@coreui/icons';
+import authFetch from '../../../utils/authFetch';
 
 function AnimalProntuario() {
   const { id } = useParams();
   const [animal, setAnimal] = useState(null);
-  const [prontuarios, setProntuarios] = useState([]);
-  const [editandoProntuarios, setEditandoProntuarios] = useState({});
-  const [novoProntuario, setNovoProntuario] = useState('');
+  const [observacoes, setObservacoes] = useState([]);
+  const [editandoObservacoes, setEditandoObservacoes] = useState({});
+  const [novaObservacao, setNovaObservacao] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [prontuarioIdToDelete, setProntuarioIdToDelete] = useState(null);
+  const [observacaoIdToDelete, setObservacaoIdToDelete] = useState(null);
+
+  const fetchAnimal = async () => {
+    try {
+      const response = await authFetch(`http://localhost:3001/animal/${id}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar animal');
+      }
+      const data = await response.json();
+      setAnimal(data);
+    } catch (error) {
+      console.error('Erro ao buscar animal:', error);
+    }
+  };
+
+  const fetchObservacoes = async () => {
+    try {
+      const response = await authFetch(`http://localhost:3001/animal/${id}/observacoes`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar observações');
+      }
+      const data = await response.json();
+      setObservacoes(data);
+    } catch (error) {
+      console.error('Erro ao buscar observações:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnimal = async () => {
-      try {
-        const response = await fetch(`http://localhost:3001/animal/${id}`);
-        if (!response.ok) {
-          throw new Error('Erro ao buscar animal');
-        }
-        const data = await response.json();
-        setAnimal(data);
-      } catch (error) {
-        console.error('Erro ao buscar animal:', error);
-      }
-    };
-
-    const fetchProntuarios = async () => {
-      try {
-        const data = [
-          {
-            id: 1,
-            texto: 'Primeiro registro do prontuário...',
-            usuario: 'Administrador',
-            data: '01/01/2023',
-            criado: true,
-          },
-          {
-            id: 2,
-            texto: 'Consulta de rotina realizada...',
-            usuario: 'João Silva',
-            data: '15/02/2023',
-            criado: false,
-          },
-        ];
-        setProntuarios(data);
-      } catch (error) {
-        console.error('Erro ao buscar prontuários:', error);
-      }
-    };
-
     fetchAnimal();
-    fetchProntuarios();
+    fetchObservacoes();
   }, [id]);
 
-  const handleTextareaChange = (e, prontuarioId) => {
+  const handleTextareaChange = (e, observacaoId) => {
     const { value } = e.target;
-    setEditandoProntuarios((prevState) => ({
+    setEditandoObservacoes((prevState) => ({
       ...prevState,
-      [prontuarioId]: value,
+      [observacaoId]: value,
     }));
   };
 
-  const handleSave = () => {
-    const prontuariosAtualizados = prontuarios.map((prontuario) => {
-      if (editandoProntuarios[prontuario.id] !== undefined) {
-        return {
-          ...prontuario,
-          texto: editandoProntuarios[prontuario.id],
-          usuario: 'Usuário Atual',
-          data: new Date().toLocaleDateString('pt-BR'),
-          criado: false,
-        };
+  const handleSave = async () => {
+    try {
+      if (novaObservacao.trim()) {
+        const response = await authFetch(`http://localhost:3001/animal/${id}/observacoes`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            descricao: novaObservacao,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao adicionar observação');
+        }
+
+        const newObservacao = await response.json();
+        setObservacoes((prevObservacoes) => [newObservacao, ...prevObservacoes]);
+        setNovaObservacao('');
       }
-      return prontuario;
-    });
 
-    if (novoProntuario.trim()) {
-      prontuariosAtualizados.unshift({
-        id: prontuarios.length + 1,
-        texto: novoProntuario,
-        usuario: 'Usuário Atual',
-        data: new Date().toLocaleDateString('pt-BR'),
-        criado: true,
-      });
-      setNovoProntuario('');
+      const observacoesAtualizadas = [...observacoes];
+      for (const observacao of observacoesAtualizadas) {
+        if (editandoObservacoes[observacao.id] !== undefined) {
+          const updatedText = editandoObservacoes[observacao.id];
+
+          const response = await authFetch(`http://localhost:3001/observacoes/${observacao.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              descricao: updatedText,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Erro ao atualizar observação');
+          }
+
+          const updatedObservacao = await response.json();
+
+          const index = observacoesAtualizadas.findIndex((obs) => obs.id === updatedObservacao.id);
+          if (index !== -1) {
+            observacoesAtualizadas[index] = updatedObservacao;
+          }
+        }
+      }
+
+      setObservacoes(observacoesAtualizadas);
+      setEditandoObservacoes({});
+    } catch (error) {
+      console.error('Erro ao salvar observação:', error);
     }
-
-    setProntuarios(prontuariosAtualizados);
-    setEditandoProntuarios({});
   };
 
-  const handleDelete = (id) => {
-    setShowModal(false);
-    setProntuarios((prevState) => prevState.filter((prontuario) => prontuario.id !== id));
-    console.log(`Prontuário ${id} excluído.`);
+  const handleDelete = async (observacaoId) => {
+    try {
+      const response = await authFetch(`http://localhost:3001/observacoes/${observacaoId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao excluir observação');
+      }
+
+      setObservacoes((prevState) => prevState.filter((obs) => obs.id !== observacaoId));
+      setShowModal(false);
+    } catch (error) {
+      console.error('Erro ao excluir observação:', error);
+    }
   };
 
-  const handleShowModal = (id) => {
+  const handleShowModal = (observacaoId) => {
     setShowModal(true);
-    setProntuarioIdToDelete(id);
+    setObservacaoIdToDelete(observacaoId);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setProntuarioIdToDelete(null);
+    setObservacaoIdToDelete(null);
   };
 
-  const handleEdit = (id) => {
-    setEditandoProntuarios((prevState) => ({
+  const handleEdit = (observacaoId) => {
+    setEditandoObservacoes((prevState) => ({
       ...prevState,
-      [id]: prontuarios.find((prontuario) => prontuario.id === id).texto,
+      [observacaoId]: observacoes.find((obs) => obs.id === observacaoId).descricao,
     }));
   };
 
@@ -142,14 +171,25 @@ function AnimalProntuario() {
             <CRow>
               <CCol md={3}>
                 {animal.foto_url && (
-                  <CCardImage orientation="top" src={animal.foto_url} className="img-fluid rounded" alt="Foto do animal" />
+                  <CCardImage
+                    orientation="top"
+                    src={`http://localhost:3001${animal.foto_url}`}
+                    className="img-fluid rounded"
+                    alt="Foto do animal"
+                  />
                 )}
               </CCol>
               <CCol md={9}>
                 <h5>{animal.nome}</h5>
-                <CCardText><strong>Espécie:</strong> {animal.especie_nome}</CCardText>
-                <CCardText><strong>Sexo:</strong> {animal.sexo}</CCardText>
-                <CCardText><strong>Cor/Pelagem:</strong> {animal.cor_pelagem}</CCardText>
+                <CCardText>
+                  <strong>Espécie:</strong> {animal.especie ? animal.especie.nome : ''}
+                </CCardText>
+                <CCardText>
+                  <strong>Sexo:</strong> {animal.sexo === 'M' ? 'Macho' : 'Fêmea'}
+                </CCardText>
+                <CCardText>
+                  <strong>Cor/Pelagem:</strong> {animal.cor_pelagem}
+                </CCardText>
               </CCol>
             </CRow>
           </CCardBody>
@@ -161,10 +201,10 @@ function AnimalProntuario() {
           <h5>Histórico de Observações</h5>
           <CForm className="mb-3">
             <CInputGroup className="mb-3">
-              <CInputGroupText>Novo Prontuário</CInputGroupText>
+              <CInputGroupText>Nova Observação</CInputGroupText>
               <CFormTextarea
-                value={novoProntuario}
-                onChange={(e) => setNovoProntuario(e.target.value)}
+                value={novaObservacao}
+                onChange={(e) => setNovaObservacao(e.target.value)}
                 rows="3"
               />
             </CInputGroup>
@@ -173,27 +213,37 @@ function AnimalProntuario() {
             </CButton>
           </CForm>
 
-          {prontuarios.map((prontuario) => (
-            <CRow key={prontuario.id} className="mb-3 align-items-center">
+          {observacoes.map((observacao) => (
+            <CRow key={observacao.id} className="mb-3 align-items-center">
               <CCol md={10}>
                 <CInputGroup>
-                  <CInputGroupText>Prontuário {prontuario.id}</CInputGroupText>
+                  <CInputGroupText>Observação {observacao.id}</CInputGroupText>
                   <CFormTextarea
-                    value={editandoProntuarios[prontuario.id] !== undefined ? editandoProntuarios[prontuario.id] : prontuario.texto}
-                    onChange={(e) => handleTextareaChange(e, prontuario.id)}
+                    value={
+                      editandoObservacoes[observacao.id] !== undefined
+                        ? editandoObservacoes[observacao.id]
+                        : observacao.descricao
+                    }
+                    onChange={(e) => handleTextareaChange(e, observacao.id)}
                     rows="3"
-                    disabled={editandoProntuarios[prontuario.id] === undefined}
+                    disabled={editandoObservacoes[observacao.id] === undefined}
                   />
                 </CInputGroup>
                 <small className="text-muted">
-                  {prontuario.criado
-                    ? `Criado por ${prontuario.usuario} em ${prontuario.data}`
-                    : `Editado por ${prontuario.usuario} em ${prontuario.data}`}
+                  {observacao.usuario
+                    ? `Criado por ${observacao.usuario.nome} em ${new Date(
+                        observacao.createdAt
+                      ).toLocaleDateString('pt-BR')}`
+                    : ''}
                 </small>
               </CCol>
               <CCol md={2} className="text-end">
-                {editandoProntuarios[prontuario.id] === undefined ? (
-                  <CButton color="info" onClick={() => handleEdit(prontuario.id)} className="me-2">
+                {editandoObservacoes[observacao.id] === undefined ? (
+                  <CButton
+                    color="info"
+                    onClick={() => handleEdit(observacao.id)}
+                    className="me-2"
+                  >
                     Editar <CIcon icon={cilPen} />
                   </CButton>
                 ) : (
@@ -201,7 +251,11 @@ function AnimalProntuario() {
                     Salvar <CIcon icon={cilCheckCircle} />
                   </CButton>
                 )}
-                <CButton color="danger" onClick={() => handleShowModal(prontuario.id)} className="me-2">
+                <CButton
+                  color="danger"
+                  onClick={() => handleShowModal(observacao.id)}
+                  className="me-2"
+                >
                   Excluir <CIcon icon={cilTrash} />
                 </CButton>
               </CCol>
@@ -214,12 +268,12 @@ function AnimalProntuario() {
         <CModalHeader closeButton>
           <CModalTitle>Confirmar Exclusão</CModalTitle>
         </CModalHeader>
-        <CModalBody>Tem certeza de que deseja excluir este prontuário?</CModalBody>
+        <CModalBody>Tem certeza de que deseja excluir esta observação?</CModalBody>
         <CModalFooter>
           <CButton color="secondary" onClick={handleCloseModal}>
             Cancelar
           </CButton>
-          <CButton color="danger" onClick={() => handleDelete(prontuarioIdToDelete)}>
+          <CButton color="danger" onClick={() => handleDelete(observacaoIdToDelete)}>
             Excluir
           </CButton>
         </CModalFooter>

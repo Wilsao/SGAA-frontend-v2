@@ -5,14 +5,19 @@ import { useSelector } from 'react-redux';
 
 const ProtectedRoute = ({ element, roles }) => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  const userRole = useSelector((state) => state.auth.role);
+  const userRole = useSelector((state) => state.auth.userRole);
+  const hasSecurityQuestion = useSelector((state) => state.auth.hasSecurityQuestion);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
 
+  if (!hasSecurityQuestion) {
+    return <Navigate to="/definir-pergunta-de-seguranca" />;
+  }
+
   if (roles && roles.length > 0 && !roles.includes(userRole)) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/unauthorized" />;
   }
 
   return element;

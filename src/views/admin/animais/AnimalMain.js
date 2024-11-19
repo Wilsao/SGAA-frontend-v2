@@ -25,45 +25,54 @@ import {
 } from "@coreui/react";
 import { Link } from "react-router-dom";
 import CIcon from "@coreui/icons-react";
-import { cilPencil, cilTrash, cilZoom, cilOptions} from "@coreui/icons";
-import { male } from 'src/assets/svg/male'
-import { female } from 'src/assets/svg/female'
+import { cilOptions, cilTrash } from "@coreui/icons";
+import { male } from 'src/assets/svg/male';
+import { female } from 'src/assets/svg/female';
 import authFetch from "../../../utils/authFetch";
+
 const AnimalMain = () => {
   const [animais, setAnimais] = useState([]);
   const [filtros, setFiltros] = useState({
     nome: "",
     numero_baia: "",
-    castracao: "",
     especie: "",
     sexo: "",
-    adocao: "",
+    status_animal_id: "",
   });
   const [numAnimaisEncontrados, setNumAnimaisEncontrados] = useState(0);
   const [showConfirmAlert, setShowConfirmAlert] = useState(false);
   const [animalToDelete, setAnimalToDelete] = useState(null);
   const [especies, setEspecies] = useState([]);
+  const [statusAnimais, setStatusAnimais] = useState([]);
 
   useEffect(() => {
-    const fetchData = async (url, setState, errorMsg) => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(errorMsg);
-        const data = await response.json();
-        setState(data);
+        const [especiesResponse, statusAnimaisResponse, animaisResponse] = await Promise.all([
+          authFetch("http://localhost:3001/especie"),
+          authFetch("http://localhost:3001/statusanimal"),
+          authFetch("http://localhost:3001/animal"),
+        ]);
+
+        if (!especiesResponse.ok) throw new Error('Erro ao buscar espécies');
+        if (!statusAnimaisResponse.ok) throw new Error('Erro ao buscar status dos animais');
+        if (!animaisResponse.ok) throw new Error('Erro ao buscar animais');
+
+        const especiesData = await especiesResponse.json();
+        setEspecies(especiesData);
+
+        const statusAnimaisData = await statusAnimaisResponse.json();
+        setStatusAnimais(statusAnimaisData);
+
+        const animaisData = await animaisResponse.json();
+        setAnimais(animaisData);
       } catch (error) {
-        console.error(errorMsg, error);
+        console.error('Erro ao buscar dados:', error);
       }
     };
 
-    fetchData("http://localhost:3001/especie", setEspecies, "Erro ao buscar espécie");
-    fetchData("http://localhost:3001/animal", setAnimais, "Erro ao buscar animais");
+    fetchData();
   }, []);
-
-  const especiesMap = especies.reduce((acc, especie) => {
-    acc[especie.id] = especie.nome;
-    return acc;
-  }, {});
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -74,11 +83,10 @@ const AnimalMain = () => {
     return animais.filter((animal) => {
       return (
         (filtros.nome === "" || animal.nome.toLowerCase().includes(filtros.nome.toLowerCase())) &&
-        (filtros.numero_baia === "" || animal.numero_baia.toLowerCase().includes(filtros.numero_baia.toLowerCase())) &&
-        (filtros.castracao === "" || animal.castracao === parseInt(filtros.castracao)) &&
-        (filtros.especie === "" || animal.especie === parseInt(filtros.especie)) &&
+        (filtros.numero_baia === "" || (animal.numero_baia && animal.numero_baia.toLowerCase().includes(filtros.numero_baia.toLowerCase()))) &&
+        (filtros.especie === "" || (animal.especie && animal.especie.id === parseInt(filtros.especie))) &&
         (filtros.sexo === "" || animal.sexo === filtros.sexo) &&
-        (filtros.adocao === "" || animal.adocao === parseInt(filtros.adocao))
+        (filtros.status_animal_id === "" || (animal.statusAnimal && animal.statusAnimal.id === parseInt(filtros.status_animal_id)))
       );
     });
   };
@@ -120,7 +128,6 @@ const AnimalMain = () => {
         </CCol>
       </CRow>
 
-
       <CRow className="mt-2">
         <CCol lg="2">
           <CFormInput
@@ -139,18 +146,6 @@ const AnimalMain = () => {
             value={filtros.numero_baia}
             onChange={handleFilterChange}
           />
-        </CCol>
-        <CCol lg="2">
-          <CFormSelect
-            aria-label="Select Castração"
-            name="castracao"
-            value={filtros.castracao}
-            onChange={handleFilterChange}
-          >
-            <option value="">Castração</option>
-            <option value="1">Sim</option>
-            <option value="0">Não</option>
-          </CFormSelect>
         </CCol>
         <CCol lg="2">
           <CFormSelect
@@ -175,23 +170,27 @@ const AnimalMain = () => {
             onChange={handleFilterChange}
           >
             <option value="">Sexo</option>
-            <option value="Macho">Macho</option>
-            <option value="Fêmea">Fêmea</option>
+            <option value="M">Macho</option>
+            <option value="F">Fêmea</option>
           </CFormSelect>
         </CCol>
         <CCol lg="2">
           <CFormSelect
-            aria-label="Select Adoção"
-            name="adocao"
-            value={filtros.adocao}
+            aria-label="Select Status"
+            name="status_animal_id"
+            value={filtros.status_animal_id}
             onChange={handleFilterChange}
           >
-            <option value="">Adoção</option>
-            <option value="1">Sim</option>
-            <option value="0">Não</option>
+            <option value="">Status</option>
+            {statusAnimais.map((status) => (
+              <option key={status.id} value={status.id}>
+                {status.nome}
+              </option>
+            ))}
           </CFormSelect>
         </CCol>
       </CRow>
+
       <p className="mb-1 mt-2">Foram encontrados {numAnimaisEncontrados} animais:</p>
       <CRow className="mt-2">
         <CCol xs={12}>
@@ -201,12 +200,11 @@ const AnimalMain = () => {
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell>ID</CTableHeaderCell>
-                    <CTableHeaderCell>Adoção</CTableHeaderCell>
+                    <CTableHeaderCell>Status</CTableHeaderCell>
                     <CTableHeaderCell>Nome</CTableHeaderCell>
                     <CTableHeaderCell>Sexo</CTableHeaderCell>
                     <CTableHeaderCell>Baia</CTableHeaderCell>
                     <CTableHeaderCell>Espécie</CTableHeaderCell>
-                    <CTableHeaderCell>Castrado</CTableHeaderCell>
                     <CTableHeaderCell>Pelagem</CTableHeaderCell>
                     <CTableHeaderCell>Ações</CTableHeaderCell>
                   </CTableRow>
@@ -215,12 +213,17 @@ const AnimalMain = () => {
                   {animaisFiltrados.map((animal) => (
                     <CTableRow key={animal.id}>
                       <CTableDataCell>{animal.id}</CTableDataCell>
-                      <CTableDataCell>{animal.adocao === 1 ? "Disponível" : "Indisponível"}</CTableDataCell>
+                      <CTableDataCell>{animal.statusAnimal ? animal.statusAnimal.nome : ''}</CTableDataCell>
                       <CTableDataCell>{animal.nome}</CTableDataCell>
-                      <CTableDataCell>{animal.sexo === 'Macho' ? <CIcon customClassName="sidebar-brand-narrow" icon={male} height={24} /> : <CIcon customClassName="sidebar-brand-narrow" icon={female} height={24} />}</CTableDataCell>
+                      <CTableDataCell>
+                        {animal.sexo === 'M' ? (
+                          <CIcon customClassName="sidebar-brand-narrow" icon={male} height={24} />
+                        ) : (
+                          <CIcon customClassName="sidebar-brand-narrow" icon={female} height={24} />
+                        )}
+                      </CTableDataCell>
                       <CTableDataCell>{animal.numero_baia}</CTableDataCell>
-                      <CTableDataCell>{especiesMap[animal.especie]}</CTableDataCell>
-                      <CTableDataCell>{animal.castracao === 1 ? "Sim" : "Não"}</CTableDataCell>
+                      <CTableDataCell>{animal.especie ? animal.especie.nome : ''}</CTableDataCell>
                       <CTableDataCell>{animal.cor_pelagem}</CTableDataCell>
                       <CTableDataCell>
                         <CDropdown>
@@ -228,16 +231,16 @@ const AnimalMain = () => {
                             <CIcon icon={cilOptions} />
                           </CDropdownToggle>
                           <CDropdownMenu>
-                            <CDropdownItem href={`#/animal/${animal.id}`} component={Link}>
+                            <CDropdownItem href={`#/animal/${animal.id}`}>
                               Ver detalhes
                             </CDropdownItem>
-                            <CDropdownItem href={`#/admin/animal/editar/${animal.id}`} component={Link}>
+                            <CDropdownItem href={`#/admin/animal/editar/${animal.id}`}>
                               Editar
                             </CDropdownItem>
-                            <CDropdownItem href={`#/admin/animal/${animal.id}/prontuario/`} component={Link}>
+                            <CDropdownItem href={`#/admin/animal/${animal.id}/prontuario/`}>
                               Prontuário
                             </CDropdownItem>
-                            <CDropdownItem href={`#/admin/animal/cuidado/${animal.id}`} component={Link}>
+                            <CDropdownItem href={`#/admin/animal/cuidado/${animal.id}`}>
                               Registrar cuidado
                             </CDropdownItem>
                             <CDropdownItem onClick={() => confirmDelete(animal.id)}>

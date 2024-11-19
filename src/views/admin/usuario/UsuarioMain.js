@@ -50,7 +50,7 @@ function UsuarioMain() {
         rolesData.forEach((role) => {
           rolesMap[role.id] = role.nome;
         });
-        console.log(usersData);
+
         setRoles(rolesMap);
         setUsers(usersData);
       } catch (error) {
@@ -154,7 +154,7 @@ function UsuarioMain() {
                   <td>{user.id}</td>
                   <td>{user.nome}</td>
                   <td>{user.email}</td>
-                  <td>{user.tipo}</td>
+                  <td>{roles[user.tipo_usuario_id]}</td>
                   <td>{user.status == 1 ? 'Ativo' : 'Inativo'}</td>
                   <td className="d-flex align-items-center">
                     <CButton
@@ -203,7 +203,9 @@ function UsuarioMain() {
       {/* Modal de Ativar/Desativar */}
       <CModal visible={showStatusModal} onClose={handleCloseStatusModal}>
         <CModalHeader closeButton>
-          <CModalTitle>Confirmar {users.find((u) => u.id === userIdToToggleStatus)?.status ? 'Desativação' : 'Ativação'}</CModalTitle>
+          <CModalTitle>
+            Confirmar {users.find((u) => u.id === userIdToToggleStatus)?.status ? 'Desativação' : 'Ativação'}
+          </CModalTitle>
         </CModalHeader>
         <CModalBody>
           Tem certeza de que deseja{' '}

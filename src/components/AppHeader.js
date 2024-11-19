@@ -15,7 +15,15 @@ import {
   CButton,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilContrast, cilMenu, cilMoon, cilSun, cilLockLocked } from '@coreui/icons';
+import {
+  cilContrast,
+  cilMenu,
+  cilMoon,
+  cilSun,
+  cilLockLocked,
+  cilUserPlus,
+  cilUser,
+} from '@coreui/icons';
 
 import AppHeaderDropdown from './header/AppHeaderDropdown';
 import { set } from '../store';
@@ -27,6 +35,7 @@ const AppHeader = () => {
   const dispatch = useDispatch();
   const sidebarShow = useSelector((state) => state.ui.sidebarShow);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
+  const userNome = useSelector((state) => state.auth.userNome);
 
   useEffect(() => {
     document.addEventListener('scroll', () => {
@@ -45,7 +54,7 @@ const AppHeader = () => {
         <CHeaderToggler onClick={toggleSidebar} style={{ marginInlineStart: '-14px' }}>
           <CIcon icon={cilMenu} size="lg" />
         </CHeaderToggler>
-        <CHeaderNav className="ms-auto">
+        <CHeaderNav className="ms-auto align-items-center">
           <CDropdown variant="nav-item" placement="bottom-end">
             <CDropdownToggle caret={false}>
               {colorMode === 'dark' ? (
@@ -72,15 +81,26 @@ const AppHeader = () => {
             <div className="vr h-100 mx-2 text-body text-opacity-75"></div>
           </li>
           {isLoggedIn ? (
-            <AppHeaderDropdown />
+            <>
+              <span className="me-3 mt-2">Olá, {userNome}</span>
+              <AppHeaderDropdown />
+            </>
           ) : (
-            <CButton
-              color="link"
-              onClick={() => (window.location.href = '/#/login')}
-              className="me-2"
-            >
-              <CIcon icon={cilLockLocked} size="lg" />
-            </CButton>
+            <>
+              <CButton
+                color="success"
+                variant="outline"
+                className="me-2"
+                onClick={() => navigate('/registro')}
+              >
+                <CIcon icon={cilUserPlus} className="me-2" />
+                Registre-se
+              </CButton>
+              <CButton color="primary" onClick={() => navigate('/login')}>
+                <CIcon icon={cilUser} className="me-2" />
+                Login
+              </CButton>
+            </>
           )}
         </CHeaderNav>
       </CContainer>

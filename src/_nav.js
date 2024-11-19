@@ -6,6 +6,7 @@ import {
   cilList,
   cilDollar,
   cilPaw,
+  cilHeart,
   cilUser,
   cilHome,
   cilInfo,
@@ -14,92 +15,124 @@ import {
 } from '@coreui/icons';
 import { CNavItem, CNavTitle } from '@coreui/react';
 
-// nav usuários públicos
-export const nav_public = [
+const navItems = [
   {
     component: CNavItem,
     name: 'Animais disponíveis',
     to: '/home',
     icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
+    acesslevel: 3,
   },
   {
     component: CNavItem,
     name: 'Sobre',
     to: '/about',
     icon: <CIcon icon={cilInfo} customClassName="nav-icon" />,
+    acesslevel: 3,
   },
   {
     component: CNavItem,
     name: 'Contato',
     to: '/contact',
     icon: <CIcon icon={cilContact} customClassName="nav-icon" />,
+    acesslevel: 3,
   },
-  // Outros itens públicos..
-];
-
-// nav administradores
-export const nav_admin = [
+  {
+    component: CNavTitle,
+    name: 'Gerenciamento',
+    acesslevel: 2,
+  },
   {
     component: CNavItem,
     name: 'Dashboard',
     to: '/admin/dashboard',
     icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavTitle,
-    name: 'Gerenciamento',
+    acesslevel: 2,
   },
   {
     component: CNavItem,
     name: 'Animais',
     to: '/admin/animais',
     icon: <CIcon icon={cilPaw} customClassName="nav-icon" />,
+    acesslevel: 2,
   },
-
   {
     component: CNavItem,
     name: 'Castrações',
     to: '/admin/castracoes',
     icon: <CIcon icon={cilMedicalCross} customClassName="nav-icon" />,
+    acesslevel: 2,
   },
   {
     component: CNavItem,
     name: 'Eventos de Arrecadação',
     to: '/admin/arrecadacoes',
     icon: <CIcon icon={cilDollar} customClassName="nav-icon" />,
+    acesslevel: 2,
   },
   {
     component: CNavItem,
     name: 'Usuários',
     to: '/admin/usuarios',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+    acesslevel: 1,
+  },
+  {
+    component: CNavItem,
+    name: 'Pessoas',
+    to: '/admin/pessoas',
+    icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+    accesslevel: 2,
+  },
+  {
+    component: CNavItem,
+    name: 'Adoções',
+    to: '/admin/adocao',
+    icon: <CIcon icon={cilHeart} customClassName="nav-icon" />,
+    accesslevel: 2,
   },
   {
     component: CNavTitle,
     name: 'Cadastros',
+    acesslevel: 2,
+  },
+    {
+    component: CNavItem,
+    name: 'Status animais',
+    to: '/admin/statusanimal',
+    icon: <CIcon icon={cilPaw} customClassName="nav-icon" />,
+    acesslevel: 2,
+  },
+    {
+    component: CNavItem,
+    name: 'Status adoção',
+    to: '/admin/statusadocao',
+    icon: <CIcon icon={cilPaw} customClassName="nav-icon" />,
+    acesslevel: 2,
   },
   {
     component: CNavItem,
     name: 'Espécies',
     to: '/admin/especies',
     icon: <CIcon icon={cilList} customClassName="nav-icon" />,
+    acesslevel: 2,
   },
   {
     component: CNavItem,
     name: 'Cargos',
     to: '/admin/cargo',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+    acesslevel: 1,
   },
-  {
-    component: CNavTitle,
-    name: 'Páginas públicas',
-  },
-  // Outros itens de administrador..
 ];
 
-export const getCombinedNav = (isAuthenticated, role) => {
-  if (isAuthenticated && role === 'Administrador') {
-    return [...nav_admin, ...nav_public];
-  }
-  return nav_public;
+export const getNavigation = (userRole) => {
+  const useracesslevel = parseInt(userRole, 10);
+
+  const filteredNavItems = navItems.filter((item) => {
+    const itemacesslevel = item.acesslevel || 1;
+    return useracesslevel <= itemacesslevel;
+  });
+
+  return filteredNavItems;
 };

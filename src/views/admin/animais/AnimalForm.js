@@ -1,4 +1,4 @@
-// src/views/admin/animais/AnimaisForm.js
+// src/views/admin/animais/AnimalForm.js
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -13,23 +13,20 @@ import {
   CFormInput,
   CFormSelect,
   CAlert,
-  CModal,
-  CModalHeader,
-  CModalTitle,
-  CModalBody,
-  CModalFooter,
-  CFormTextarea,
 } from "@coreui/react";
 import CIcon from '@coreui/icons-react';
-import { cilSave, cilBan } from '@coreui/icons';
+import { cilSave, cilBan, cilTrash } from '@coreui/icons';
 
 import authFetch from '../../../utils/authFetch';
+import axios from 'axios';
 
 const AnimalForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [especies, setEspecies] = useState([]);
+  const [statusAnimais, setStatusAnimais] = useState([]);
   const [cuidadores, setCuidadores] = useState([]);
+  const [imagens, setImagens] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -43,36 +40,40 @@ const AnimalForm = () => {
     numero_baia: "",
     numero_chip: "",
     condicao_resgate: "",
-    cuidador: "",
-    especie: "",
-    castracao: "",
-    adocao: "",
-    foto_url: ""
+    status_animal_id: "",
+    especie_id: "",
+    responsavel_id: "",
   });
 
-  const [showCastrationModal, setShowCastrationModal] = useState(false);
-  const [castrationDate, setCastrationDate] = useState("");
-  const [castrationDescription, setCastrationDescription] = useState("");
-  const [castrationLocation, setCastrationLocation] = useState("");
-  const [previousCastracao, setPreviousCastracao] = useState("");
+  const [imagem, setImagem] = useState(null);
 
   useEffect(() => {
-    const fetchData = async (url, setState, errorMsg) => {
+    const fetchData = async () => {
       try {
-        const response = await authFetch(url, {
-          method: 'GET',
-        });
-        if (!response.ok) throw new Error(errorMsg);
-        const data = await response.json();
-        setState(data);
+        const [especiesResponse, statusAnimaisResponse, cuidadoresResponse] = await Promise.all([
+          authFetch("http://localhost:3001/especie", { method: 'GET' }),
+          authFetch("http://localhost:3001/statusanimal", { method: 'GET' }),
+          authFetch("http://localhost:3001/cuidador", { method: 'GET' }),
+        ]);
+
+        if (!especiesResponse.ok) throw new Error('Erro ao buscar espécies');
+        if (!statusAnimaisResponse.ok) throw new Error('Erro ao buscar status dos animais');
+        if (!cuidadoresResponse.ok) throw new Error('Erro ao buscar cuidadores');
+
+        const especiesData = await especiesResponse.json();
+        const statusAnimaisData = await statusAnimaisResponse.json();
+        const cuidadoresData = await cuidadoresResponse.json();
+
+        setEspecies(especiesData);
+        setStatusAnimais(statusAnimaisData);
+        setCuidadores(cuidadoresData);
       } catch (error) {
-        console.error(errorMsg, error);
-        setErrorMessage(errorMsg);
+        console.error(error.message);
+        setErrorMessage(error.message);
       }
     };
 
-    fetchData("http://localhost:3001/especie", setEspecies, 'Erro ao buscar espécie');
-    fetchData("http://localhost:3001/cuidador", setCuidadores, 'Erro ao buscar cuidador');
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -85,20 +86,40 @@ const AnimalForm = () => {
 
           if (!response.ok) throw new Error("Erro ao buscar animal");
           const data = await response.json();
-          const animalData = data.animal || data;
 
-          // Formatar datas
-          animalData.data_ocorrencia = animalData.data_ocorrencia
-            ? new Date(animalData.data_ocorrencia).toISOString().split('T')[0]
+          data.data_ocorrencia = data.data_ocorrencia
+            ? new Date(data.data_ocorrencia).toISOString().split('T')[0]
             : '';
-          animalData.data_nascimento_aproximada = animalData.data_nascimento_aproximada
-            ? new Date(animalData.data_nascimento_aproximada).toISOString().split('T')[0]
+          data.data_nascimento_aproximada = data.data_nascimento_aproximada
+            ? new Date(data.data_nascimento_aproximada).toISOString().split('T')[0]
             : '';
 
-          setAnimal(animalData);
-          setPreviousCastracao(animalData.castracao);
+          setAnimal({
+            nome: data.nome || "",
+            sexo: data.sexo || "",
+            cor_pelagem: data.cor_pelagem || "",
+            deficiencia: data.deficiencia || "",
+            data_ocorrencia: data.data_ocorrencia || "",
+            data_nascimento_aproximada: data.data_nascimento_aproximada || "",
+            numero_baia: data.numero_baia || "",
+            numero_chip: data.numero_chip || "",
+            condicao_resgate: data.condicao_resgate || "",
+            status_animal_id: data.status_animal_id || "",
+            especie_id: data.especie_id || "",
+            responsavel_id: data.responsavel_id || "",
+          });
+
+          const imagesResponse = await authFetch(`http://localhost:3001/animal/imagens/${id}`, {
+            method: 'GET',
+          });
+          if (imagesResponse.ok) {
+            const imagesData = await imagesResponse.json();
+            setImagens(imagesData);
+            // console.log(imagesData);
+          } else {
+            // setImagens([]);
+          }
         } catch (error) {
-          console.error("Erro ao buscar animal:", error);
           setErrorMessage("Erro ao buscar dados do animal.");
         }
       };
@@ -109,6 +130,10 @@ const AnimalForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setAnimal((prevState) => ({ ...prevState, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    setImagem(e.target.files[0]);
   };
 
   const handleSubmit = async (e) => {
@@ -129,68 +154,66 @@ const AnimalForm = () => {
         const data = await response.json();
         if (data.error) setErrorMessage(data.error);
         else throw new Error("Erro ao salvar animal");
-      } else {
-        const castracaoAtual = animal.castracao;
-        if (castracaoAtual === "1" && previousCastracao !== "1") {
-          setShowCastrationModal(true);
-        } else {
-          setSuccessMessage(`Animal ${id ? "atualizado" : "cadastrado"} com sucesso!`);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao salvar animal:", error);
-      setErrorMessage("Erro ao salvar animal.");
-    }
-  };
-
-  const handleRegisterCastration = async () => {
-    try {
-      const especieSelecionada = especies.find(e => e.id === parseInt(animal.especie));
-      const especieNome = especieSelecionada ? especieSelecionada.nome : '';
-      const sexoAnimal = animal.sexo;
-
-      if (!castrationDate) {
-        setErrorMessage("Por favor, insira a data da castração.");
         return;
       }
 
-      const castracaoData = {
-        data_evento: castrationDate,
-        local_evento: castrationLocation,
-        descricao: castrationDescription,
-        tipo_animal: especieNome,
-        sexo_animal: sexoAnimal,
-        quantidade_castrada: 1
-      };
+      const savedAnimal = id ? { id } : await response.json();
 
-      const response = await authFetch('http://localhost:3001/castracao', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(castracaoData)
-      });
+      if (imagem) {
+        const formData = new FormData();
+        formData.append('file', imagem);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Erro ao registrar castração');
+        const token = localStorage.getItem('token');
+
+        const imageResponse = await axios.post(
+          `http://localhost:3001/animal/upload/${savedAnimal.id}`,
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+
+        if (imageResponse.status !== 201 && imageResponse.status !== 200) {
+          throw new Error('Erro ao fazer upload da imagem');
+        } else {
+          console.log('Image upload response:', imageResponse.data);
+          setImagens([...imagens, imageResponse.data]);
+        }
       }
 
-      setSuccessMessage("Castração registrada com sucesso!");
-      setShowCastrationModal(false);
-      setCastrationDate("");
-      setCastrationDescription("");
-      setCastrationLocation("");
+      setSuccessMessage(`Animal ${id ? "atualizado" : "cadastrado"} com sucesso!`);
     } catch (error) {
-      console.error("Erro ao registrar castração:", error);
-      setErrorMessage("Erro ao registrar castração.");
+      console.error("Erro ao salvar animal:", error);
+      setErrorMessage(error.response?.data?.error || error.message || "Erro ao salvar animal.");
     }
   };
 
-  const handleCancelCastration = () => {
-    setShowCastrationModal(false);
-    setCastrationDate("");
-    setCastrationDescription("");
-    setCastrationLocation("");
-    // navigate("/admin/animais");
+  const handleDeleteImage = async (imageKey) => {
+    try {
+      const confirmDelete = window.confirm("Tem certeza que deseja excluir esta imagem?");
+      if (!confirmDelete) return;
+
+      const token = localStorage.getItem('token');
+
+      const response = await axios.delete(`http://localhost:3001/animal/imagens/${imageKey}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setImagens(imagens.filter((img) => img.key !== imageKey));
+        setSuccessMessage("Imagem excluída com sucesso.");
+      } else {
+        throw new Error("Erro ao excluir imagem.");
+      }
+    } catch (error) {
+      console.error("Erro ao excluir imagem:", error);
+      setErrorMessage(error.response?.data?.error || error.message || "Erro ao excluir imagem.");
+    }
   };
 
   return (
@@ -201,9 +224,6 @@ const AnimalForm = () => {
             <CCardBody>
               <h2>{id ? "Editar Animal" : "Cadastrar Animal"}</h2>
               <CForm onSubmit={handleSubmit}>
-                {errorMessage && <CAlert color="danger">{errorMessage}</CAlert>}
-                {successMessage && <CAlert color="success">{successMessage}</CAlert>}
-
                 <CRow className="mb-3">
                   <CCol md={6}>
                     <CFormLabel>Nome</CFormLabel>
@@ -224,8 +244,8 @@ const AnimalForm = () => {
                       required
                     >
                       <option value="">Selecione</option>
-                      <option value="Macho">Macho</option>
-                      <option value="Fêmea">Fêmea</option>
+                      <option value="M">Macho</option>
+                      <option value="F">Fêmea</option>
                     </CFormSelect>
                   </CCol>
                 </CRow>
@@ -238,13 +258,14 @@ const AnimalForm = () => {
                       name="cor_pelagem"
                       value={animal.cor_pelagem}
                       onChange={handleChange}
+                      required
                     />
                   </CCol>
                   <CCol md={6}>
                     <CFormLabel>Espécie</CFormLabel>
                     <CFormSelect
-                      name="especie"
-                      value={animal.especie}
+                      name="especie_id"
+                      value={animal.especie_id}
                       onChange={handleChange}
                       required
                     >
@@ -311,12 +332,43 @@ const AnimalForm = () => {
                     />
                   </CCol>
                   <CCol md={6}>
-                    <CFormLabel>Cuidador Temporário</CFormLabel>
+                    <CFormLabel>Condição de Resgate</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      name="condicao_resgate"
+                      value={animal.condicao_resgate}
+                      onChange={handleChange}
+                    />
+                  </CCol>
+                </CRow>
+
+                <CRow className="mb-3">
+                  <CCol md={12}>
+                    <CFormLabel>Status do Animal</CFormLabel>
                     <CFormSelect
-                      name="cuidador"
-                      value={animal.cuidador}
+                      name="status_animal_id"
+                      value={animal.status_animal_id}
                       onChange={handleChange}
                       required
+                    >
+                      <option value="">Selecione</option>
+                      {statusAnimais.map((status) => (
+                        <option key={status.id} value={status.id}>
+                          {status.nome}
+                        </option>
+                      ))}
+                    </CFormSelect>
+                  </CCol>
+                </CRow>
+
+
+                <CRow className="mb-3">
+                  <CCol md={6}>
+                    <CFormLabel>Responsável (Cuidador)</CFormLabel>
+                    <CFormSelect
+                      name="responsavel_id"
+                      value={animal.responsavel_id || ""}
+                      onChange={handleChange}
                     >
                       <option value="">Selecione</option>
                       {cuidadores.map((c) => (
@@ -326,112 +378,59 @@ const AnimalForm = () => {
                       ))}
                     </CFormSelect>
                   </CCol>
-                </CRow>
-
-                <CRow className="mb-3">
                   <CCol md={6}>
-                    <CFormLabel>Status de Castração</CFormLabel>
-                    <CFormSelect
-                      name="castracao"
-                      value={animal.castracao}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Selecione</option>
-                      <option value="1">Sim</option>
-                      <option value="0">Não</option>
-                    </CFormSelect>
-                  </CCol>
-                  <CCol md={6}>
-                    <CFormLabel>Disponível para Adoção</CFormLabel>
-                    <CFormSelect
-                      name="adocao"
-                      value={animal.adocao}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Selecione</option>
-                      <option value="1">Sim</option>
-                      <option value="0">Não</option>
-                    </CFormSelect>
-                  </CCol>
-                </CRow>
-
-                <CRow className="mb-3">
-                  <CCol md={12}>
-                    <CFormLabel>Link da Foto</CFormLabel>
+                    <CFormLabel>Imagem</CFormLabel>
                     <CFormInput
-                      type="text"
-                      name="foto_url"
-                      value={animal.foto_url}
-                      onChange={handleChange}
+                      type="file"
+                      name="imagem"
+                      accept="image/*"
+                      onChange={handleImageChange}
                     />
                   </CCol>
                 </CRow>
 
+                {imagens.length > 0 && (
+                  <CRow className="mb-3">
+                    <CCol>
+                      <h5>Imagens do Animal</h5>
+                      <CRow>
+                        {imagens.map((imagem) => (
+                          <CCol md={3} key={imagem.key} className="mb-3">
+                            <div className="position-relative">
+                              <img
+                                src={`http://localhost:3001${imagem.url}`}
+                                alt={imagem.nome}
+                                className="img-thumbnail"
+                              />
+                              <CButton
+                                color="danger"
+                                size="sm"
+                                className="position-absolute top-0 end-0"
+                                onClick={() => handleDeleteImage(imagem.key)}
+                              >
+                                <CIcon icon={cilTrash} />
+                              </CButton>
+                            </div>
+                          </CCol>
+                        ))}
+                      </CRow>
+                    </CCol>
+                  </CRow>
+                )}
+                {errorMessage && <CAlert color="danger">{errorMessage}</CAlert>}
+                {successMessage && <CAlert color="success">{successMessage}</CAlert>}
                 <CButton color="primary" type="submit" className="me-2">
                   <CIcon icon={cilSave} className="me-1" /> {id ? "Atualizar" : "Cadastrar"}
                 </CButton>
                 <CButton color="secondary" onClick={() => navigate("/admin/animais")}>
                   <CIcon icon={cilBan} className="me-1" /> Cancelar
                 </CButton>
+
               </CForm>
             </CCardBody>
           </CCard>
         </CCol>
       </CRow>
-
-      {/* Modal de Registro de Castração */}
-      <CModal visible={showCastrationModal} onClose={handleCancelCastration}>
-        <CModalHeader>
-          <CModalTitle>Registrar Castração</CModalTitle>
-        </CModalHeader>
-        <CModalBody>
-          {errorMessage && <CAlert color="danger">{errorMessage}</CAlert>}
-          <CForm>
-            <CRow className="mb-3">
-              <CCol md={12}>
-                <CFormLabel>Data da Castração</CFormLabel>
-                <CFormInput
-                  type="date"
-                  value={castrationDate}
-                  onChange={(e) => setCastrationDate(e.target.value)}
-                  required
-                />
-              </CCol>
-            </CRow>
-            <CRow className="mb-3">
-              <CCol md={12}>
-                <CFormLabel>Local da Castração</CFormLabel>
-                <CFormInput
-                  type="text"
-                  value={castrationLocation}
-                  onChange={(e) => setCastrationLocation(e.target.value)}
-                  required
-                />
-              </CCol>
-            </CRow>
-            <CRow className="mb-3">
-              <CCol md={12}>
-                <CFormLabel>Descrição</CFormLabel>
-                <CFormTextarea
-                  rows={3}
-                  value={castrationDescription}
-                  onChange={(e) => setCastrationDescription(e.target.value)}
-                />
-              </CCol>
-            </CRow>
-          </CForm>
-        </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={handleCancelCastration}>
-            Não registrar
-          </CButton>
-          <CButton color="primary" onClick={handleRegisterCastration}>
-            Registrar
-          </CButton>
-        </CModalFooter>
-      </CModal>
     </CContainer>
   );
 };

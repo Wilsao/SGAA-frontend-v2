@@ -1,4 +1,5 @@
 // src/views/admin/animais/AnimaisView.js
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -14,6 +15,9 @@ import {
   CBadge,
   CListGroup,
   CListGroupItem,
+  CCarousel,
+  CCarouselItem,
+  CCarouselCaption,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilArrowLeft, cilPhone, cilPencil } from '@coreui/icons';
@@ -25,8 +29,8 @@ function AnimaisView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [animal, setAnimal] = useState(null);
+  const [imagens, setImagens] = useState([]);
 
-  // Obter estado de autenticação do Redux
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const userRole = useSelector((state) => state.auth.user?.role);
 
@@ -42,19 +46,17 @@ function AnimaisView() {
         }
 
         const data = await response.json();
-        const animalData = data.animal || data;
 
-        animalData.especie_nome = animalData.especie_nome || animalData.especie || 'Não Informado';
+        const imagesResponse = await authFetch(`http://localhost:3001/animal/imagens/${id}`, {
+          method: 'GET',
+        });
 
-        animalData.data_ocorrencia = animalData.data_ocorrencia
-          ? new Date(animalData.data_ocorrencia).toISOString().split('T')[0]
-          : '';
+        if (imagesResponse.ok) {
+          const imagesData = await imagesResponse.json();
+          setImagens(imagesData);
+        }
 
-        animalData.data_nascimento_aproximada = animalData.data_nascimento_aproximada
-          ? new Date(animalData.data_nascimento_aproximada).toISOString().split('T')[0]
-          : '';
-
-        setAnimal(animalData);
+        setAnimal(data);
       } catch (error) {
         console.error('Erro ao buscar animal:', error);
       }
@@ -101,12 +103,11 @@ function AnimaisView() {
             <CIcon icon={cilArrowLeft} /> Voltar
           </CButton>
           {/* Botão Editar para Administradores */}
-          {/* {isAuthenticated && userRole == 'admin' && ( */}
           {isAuthenticated && (
             <CButton
               color="warning"
               className="ms-2"
-              onClick={() => navigate(`/admin/animal/editar/${animal.id}`)}
+              onClick={() => navigate(`/admin/animais/editar/${animal.id}`)}
             >
               <CIcon icon={cilPencil} /> Editar
             </CButton>
@@ -117,30 +118,44 @@ function AnimaisView() {
       <CRow className="justify-content-center mt-3">
         <CCol md={8}>
           <CCard className="mb-4 shadow-sm border-light">
-            {animal.foto_url && (
-              <CCardImage
-                orientation="top"
-                src={animal.foto_url}
-                className="img-fluid rounded-top"
-                alt="Foto do animal"
-              />
-            )}
+            {imagens.length > 0 ? (
+              <CCarousel controls indicators>
+                {imagens.map((imagem, index) => (
+                  <CCarouselItem key={index}>
+                    <img
+                      className="d-block w-100"
+                      src={`http://localhost:3001${imagem.url}`}
+                      alt={`Imagem ${index + 1}`}
+                    />
+                    <CCarouselCaption className="d-none d-md-block">
+                      <h5>{animal.nome}</h5>
+                    </CCarouselCaption>
+                  </CCarouselItem>
+                ))}
+              </CCarousel>
+            ) : (<></>)}
             <CCardBody>
               <CRow>
                 <CCol md={12} className="text-center mb-3">
                   <CCardTitle className="h2">{animal.nome}</CCardTitle>
-                  <CBadge color={animal.adocao === 1 || animal.adocao === '1' ? 'success' : 'secondary'}>
-                    {animal.adocao === 1 || animal.adocao === '1' ? 'Disponível para Adoção' : 'Não Disponível para Adoção'}
+                  <CBadge
+                    color={
+                      animal.status_animal && animal.status_animal.nome === 'Disponível'
+                        ? 'success'
+                        : 'secondary'
+                    }
+                  >
+                    {animal.status_animal ? animal.status_animal.nome : 'Status Desconhecido'}
                   </CBadge>
                 </CCol>
               </CRow>
 
               <CListGroup flush>
                 <CListGroupItem>
-                  <strong>Espécie:</strong> {animal.especie_nome}
+                  <strong>Espécie:</strong> {animal.especie ? animal.especie.nome : 'Não Informado'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Sexo:</strong> {animal.sexo}
+                  <strong>Sexo:</strong> {animal.sexo === 'M' ? 'Macho' : 'Fêmea'}
                 </CListGroupItem>
                 <CListGroupItem>
                   <strong>Cor/Pelagem:</strong> {animal.cor_pelagem}
@@ -165,21 +180,36 @@ function AnimaisView() {
                   <strong>Condição do Resgate:</strong> {animal.condicao_resgate || 'Não Informada'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Castração:</strong> {animal.castracao === 1 || animal.castracao === '1' ? 'Sim' : 'Não'}
+                  <strong>Castração:</strong> {animal.castracao ? 'Sim' : 'Não'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Cuidador:</strong> {animal.cuidador_nome || 'Não Informado'}
+                  <strong>Cuidador:</strong>{' '}
+                  {animal.responsavel ? animal.responsavel.nome : 'Não Informado'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Telefone do Cuidador:</strong> {animal.cuidador_telefone || 'Não Informado'}
+                  <strong>Contatos do Cuidador:</strong>{' '}
+                  {animal.responsavel && animal.responsavel.contatos && animal.responsavel.contatos.length > 0
+                    ? animal.responsavel.contatos.map((contato, idx) => (
+                        <span key={idx}>
+                          {contato.tipo}: {contato.valor}{' '}
+                        </span>
+                      ))
+                    : 'Não Informado'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Endereço do Cuidador:</strong> {animal.cuidador_endereco || 'Não Informado'}
+                  <strong>Endereço do Cuidador:</strong>{' '}
+                  {animal.responsavel && animal.responsavel.enderecos && animal.responsavel.enderecos.length > 0
+                    ? animal.responsavel.enderecos.map((endereco, idx) => (
+                        <span key={idx}>
+                          {endereco.logradouro}, {endereco.numero}, {endereco.cidade}, {endereco.estado}, {endereco.cep}{' '}
+                        </span>
+                      ))
+                    : 'Não Informado'}
                 </CListGroupItem>
               </CListGroup>
 
               {/* Botão Quero Adotar */}
-              {animal.adocao === 1 || animal.adocao === '1' ? (
+              {animal.status_animal && animal.status_animal.nome === 'Disponível' && (
                 <CRow className="mt-4">
                   <CCol className="text-center">
                     <CButton color="success" onClick={() => openWhatsApp(animal.nome)}>
@@ -187,7 +217,7 @@ function AnimaisView() {
                     </CButton>
                   </CCol>
                 </CRow>
-              ) : null}
+              )}
             </CCardBody>
           </CCard>
         </CCol>

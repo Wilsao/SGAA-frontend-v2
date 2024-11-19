@@ -4,6 +4,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import {
   CCloseButton,
   CSidebar,
+  CRow,
+  CCol,
+  CButton,
   CSidebarBrand,
   CSidebarFooter,
   CSidebarHeader,
@@ -11,18 +14,19 @@ import {
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 
+import { useNavigate, useParams } from 'react-router-dom';
 import { AppSidebarNav } from './AppSidebarNav';
 import { logo } from 'src/assets/svg/logo';
 import { sygnet } from 'src/assets/svg/sygnet';
 import { set } from '../store';
 
-import { getCombinedNav } from '../_nav';
+import { getNavigation } from '../_nav';
 
 const AppSidebar = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const unfoldable = useSelector((state) => state.ui.sidebarUnfoldable);
   const sidebarShow = useSelector((state) => state.ui.sidebarShow);
-  const userRole = useSelector((state) => state.auth.role);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const handleVisibleChange = (visible) => {
@@ -37,7 +41,8 @@ const AppSidebar = () => {
     dispatch(set({ sidebarUnfoldable: !unfoldable }));
   };
 
-  const navItems = getCombinedNav(isAuthenticated, userRole);
+  const userRole = useSelector((state) => state.auth.userRole) || '3';
+  const navItems = getNavigation(userRole);
 
   return (
     <CSidebar

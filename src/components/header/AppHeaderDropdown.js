@@ -1,4 +1,5 @@
 // src/components/header/AppHeaderDropdown.js
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,12 +16,14 @@ import { cilTask, cilUser, cilAccountLogout } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
 
 import avatar8 from './../../assets/images/avatars/8.jpg';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux'; // Import useSelector
 import { logoutUser } from '../../store';
 
 const AppHeaderDropdown = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const userId = useSelector((state) => state.auth.userId);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -42,7 +45,7 @@ const AppHeaderDropdown = () => {
           </CBadge>
         </CDropdownItem>
         <CDropdownHeader className="bg-body-secondary fw-semibold my-2">Configurações</CDropdownHeader>
-        <CDropdownItem href="#/admin/usuario/editar/2">
+        <CDropdownItem href={`#/admin/usuario/editar/${userId}`}>
           <CIcon icon={cilUser} className="me-2" />
           Perfil
         </CDropdownItem>

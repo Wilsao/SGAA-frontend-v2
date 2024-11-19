@@ -1,4 +1,4 @@
-// src/views/admin/cargos/CargoForm.js
+// src/views/admin/statusanimal/StatusAnimalForm.js
 import React, { useState, useEffect } from 'react';
 import {
   CContainer,
@@ -17,34 +17,34 @@ import authFetch from '../../../utils/authFetch';
 import CIcon from '@coreui/icons-react';
 import { cilSave, cilBan } from '@coreui/icons';
 
-function CargoForm() {
+function StatusAnimalForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [role, setRole] = useState({ nome: '' });
+  const [statusAnimal, setStatusAnimal] = useState({ nome: '' });
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (id) {
-      const fetchRole = async () => {
+      const fetchStatusAnimal = async () => {
         try {
-          const response = await authFetch(`http://localhost:3001/tipousuario/${id}`, { method: 'GET' });
+          const response = await authFetch(`http://localhost:3001/statusanimal/${id}`, { method: 'GET' });
           if (!response.ok) {
-            throw new Error('Erro ao buscar cargo');
+            throw new Error('Erro ao buscar status do animal');
           }
           const data = await response.json();
-          setRole(data);
+          setStatusAnimal(data);
         } catch (error) {
-          console.error('Erro ao buscar cargo:', error);
-          setErrorMessage('Erro ao buscar cargo.');
+          console.error('Erro ao buscar status do animal:', error);
+          setErrorMessage('Erro ao buscar status do animal.');
         }
       };
-      fetchRole();
+      fetchStatusAnimal();
     }
   }, [id]);
 
   const handleChange = (e) => {
-    setRole({ ...role, nome: e.target.value, status:1 });
+    setStatusAnimal({ ...statusAnimal, nome: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -53,19 +53,20 @@ function CargoForm() {
     setSuccessMessage('');
     try {
       const method = id ? 'PUT' : 'POST';
-      const url = `http://localhost:3001/tipousuario${id ? `/${id}` : ''}`;
+      const url = `http://localhost:3001/statusanimal${id ? `/${id}` : ''}`;
       const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(role),
+        body: JSON.stringify(statusAnimal),
       });
       if (!response.ok) {
-        throw new Error('Erro ao salvar cargo');
+        const data = await response.json();
+        throw new Error(data.mensagem || 'Erro ao salvar status do animal');
       }
-      setSuccessMessage(`Cargo ${id ? 'atualizado' : 'cadastrado'} com sucesso!`);
+      setSuccessMessage(`Status do animal ${id ? 'atualizado' : 'cadastrado'} com sucesso!`);
     } catch (error) {
-      console.error('Erro ao salvar cargo:', error);
-      setErrorMessage('Erro ao salvar cargo.');
+      console.error('Erro ao salvar status do animal:', error);
+      setErrorMessage(error.message || 'Erro ao salvar status do animal.');
     }
   };
 
@@ -75,16 +76,16 @@ function CargoForm() {
         <CCol md={6}>
           <CCard>
             <CCardBody>
-              <h2>{id ? 'Editar Cargo' : 'Cadastrar Cargo'}</h2>
+              <h2>{id ? 'Editar Status do Animal' : 'Cadastrar Status do Animal'}</h2>
               <CForm onSubmit={handleSubmit}>
                 {errorMessage && <CAlert color="danger">{errorMessage}</CAlert>}
                 {successMessage && <CAlert color="success">{successMessage}</CAlert>}
                 <CRow className="mb-3">
                   <CCol>
-                    <CFormLabel>Nome do Cargo</CFormLabel>
+                    <CFormLabel>Nome do Status</CFormLabel>
                     <CFormInput
                       type="text"
-                      value={role.nome}
+                      value={statusAnimal.nome}
                       onChange={handleChange}
                       required
                     />
@@ -94,7 +95,7 @@ function CargoForm() {
                   <CIcon icon={cilSave} className="me-1" />
                   {id ? 'Atualizar' : 'Cadastrar'}
                 </CButton>
-                <CButton color="secondary" onClick={() => navigate('admin/roles')}>
+                <CButton color="secondary" onClick={() => navigate('/admin/statusanimal')}>
                   <CIcon icon={cilBan} className="me-1" />
                   Cancelar
                 </CButton>
@@ -107,4 +108,4 @@ function CargoForm() {
   );
 }
 
-export default CargoForm;
+export default StatusAnimalForm;

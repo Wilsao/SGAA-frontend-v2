@@ -16,7 +16,7 @@ import {
   CAlert,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilLockLocked, cilUser } from '@coreui/icons';
+import { cilLockLocked, cilUser, cilUserPlus } from '@coreui/icons';
 
 import store, { loginUser, setAuthError } from '../../../store';
 
@@ -30,13 +30,12 @@ const Login = () => {
   const authError = useSelector((state) => state.auth.error);
 
   useEffect(() => {
-    console.log();
     if (isAuthenticated) {
-      if(store.getState().auth.role != 'Administrador'){
-        navigate('/home');
-      }
-      else{
+      const userRole = store.getState().auth.userRole;
+      if (userRole == '1' || userRole == '2') {
         navigate('/admin/dashboard');
+      } else {
+        navigate('/home');
       }
     }
   }, [isAuthenticated, navigate]);
@@ -69,7 +68,7 @@ const Login = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ email }),
         });
@@ -81,12 +80,14 @@ const Login = () => {
           dispatch(
             loginUser({
               token: token,
-              user: userData.usuario,
-              role: userData.usuario.tipo,
+              userId: userData.id,
+              pessoaId: userData.pessoa_id,
+              userNome: userData.nome,
+              userEmail: userData.email,
+              userRole: userData.tipo_usuario_id.toString(),
+              hasSecurityQuestion: !!userData.pergunta,
             })
           );
-
-          navigate('/admin/dashboard');
         } else {
           dispatch(setAuthError('Erro ao obter dados do usuário.'));
         }
@@ -98,6 +99,7 @@ const Login = () => {
       dispatch(setAuthError('Erro ao conectar ao servidor.'));
     }
   };
+
   return (
     <div className="min-vh-100 d-flex flex-row align-items-center">
       <CContainer>
@@ -134,9 +136,27 @@ const Login = () => {
                     />
                   </CInputGroup>
                   <CRow>
-                    <CCol xs={6}>
+                    <CCol xs={12}>
                       <CButton color="primary" type="submit">
                         Login
+                      </CButton>
+                    </CCol>
+                    <CCol xs={12}>
+                      <CButton
+                        color="success"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => navigate('/registro')}
+                      >
+                        <CIcon icon={cilUserPlus} className="me-2" />
+                        Registre-se
+                      </CButton>
+                    </CCol>
+                  </CRow>
+                  <CRow>
+                    <CCol xs={6}>
+                      <CButton className="ps-0" color="link" onClick={() => navigate('/esqueci-a-senha')}>
+                        Esqueci minha senha
                       </CButton>
                     </CCol>
                   </CRow>

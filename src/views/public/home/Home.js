@@ -1,4 +1,5 @@
 // src/views/public/home/Home.js
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,44 +16,46 @@ import {
   CModalHeader,
   CModalTitle,
   CModalBody,
+  CModalFooter,
   CForm,
   CInputGroup,
   CFormLabel,
   CFormSelect,
+  CAlert,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilPhone, cilSearch } from '@coreui/icons';
+import { cilHeart, cilSearch } from '@coreui/icons';
+import { useSelector } from 'react-redux';
 
 function Home() {
   const [animais, setAnimais] = useState([]);
   const navigate = useNavigate();
-  const [showFormularioAdocao, setShowFormularioAdocao] = useState(false);
-  const [dadosAdotante, setDadosAdotante] = useState({
-    nome: '',
-    data_nascimento: '',
-    email: '',
-    telefone: '',
-    endereco: '',
-    cidade: '',
-  });
+  const [showAdoptModal, setShowAdoptModal] = useState(false);
+  const [selectedAnimalId, setSelectedAnimalId] = useState(null);
+  const [adoptionError, setAdoptionError] = useState('');
+  const [adoptionSuccess, setAdoptionSuccess] = useState('');
   const [filtros, setFiltros] = useState({
-    especie: '',
+    especie_id: '',
     sexo: '',
-    castracao: '',
+    castrado: '',
   });
   const [especies, setEspecies] = useState([]);
+
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
 
   useEffect(() => {
     const fetchEspecies = async () => {
       try {
         const response = await fetch('http://localhost:3001/especie');
         if (!response.ok) {
-          throw new Error('Erro ao buscar espécie');
+          throw new Error('Erro ao buscar espécies');
         }
         const data = await response.json();
         setEspecies(data);
       } catch (error) {
-        console.error('Erro ao buscar espécie:', error);
+        console.error('Erro ao buscar espécies:', error);
       }
     };
     fetchEspecies();
@@ -66,13 +69,25 @@ function Home() {
   useEffect(() => {
     const fetchAnimais = async () => {
       try {
-        const response = await fetch('http://localhost:3001/animal');
+        const response = await fetch('http://localhost:3001/animal?status_animal_id=1');
         if (!response.ok) {
           throw new Error('Erro ao buscar animais');
         }
         const data = await response.json();
-        const animaisAdocao = data.filter((animal) => animal.adocao === 1);
-        setAnimais(animaisAdocao);
+
+        const animaisComImagens = await Promise.all(
+          data.map(async (animal) => {
+            const imagesResponse = await fetch(`http://localhost:3001/animal/imagens/${animal.id}`);
+            if (imagesResponse.ok) {
+              const imagesData = await imagesResponse.json();
+              return { ...animal, imagens: imagesData };
+            } else {
+              return { ...animal, imagens: [] };
+            }
+          })
+        );
+
+        setAnimais(animaisComImagens);
       } catch (error) {
         console.error('Erro ao buscar animais:', error);
       }
@@ -86,21 +101,27 @@ function Home() {
   };
 
   const filtrarAnimais = () => {
-    return animais.filter(
-      (animal) =>
-        (filtros.especie === '' || animal.especie === parseInt(filtros.especie)) &&
-        (filtros.sexo === '' || animal.sexo === filtros.sexo) &&
-        (filtros.castracao === '' || animal.castracao === parseInt(filtros.castracao))
-    );
+    return animais.filter((animal) => {
+      const matchesEspecie =
+        filtros.especie_id === '' || animal.especie_id === parseInt(filtros.especie_id);
+      const matchesSexo = filtros.sexo === '' || animal.sexo === filtros.sexo;
+      const matchesCastrado =
+        filtros.castrado === '' || (animal.castrado ? '1' : '0') === filtros.castrado;
+
+      return matchesEspecie && matchesSexo && matchesCastrado;
+    });
   };
 
   const animaisFiltrados = filtrarAnimais();
 
   const calcularIdade = (dataNascimento) => {
+    if (!dataNascimento) return 'Idade desconhecida';
     const hoje = new Date();
     const nascimento = new Date(dataNascimento);
     const idadeEmMeses =
-      hoje.getMonth() - nascimento.getMonth() + 12 * (hoje.getFullYear() - nascimento.getFullYear());
+      hoje.getMonth() -
+      nascimento.getMonth() +
+      12 * (hoje.getFullYear() - nascimento.getFullYear());
 
     if (idadeEmMeses < 2) {
       const idadeEmSemanas = Math.floor((hoje - nascimento) / (1000 * 60 * 60 * 24 * 7));
@@ -116,54 +137,43 @@ function Home() {
     }
   };
 
-  const openWhatsApp = (nomeAnimal) => {
-    const mensagem = encodeURIComponent(`Gostaria de tirar dúvidas sobre o animal ${nomeAnimal}!`);
-    window.open(`https://api.whatsapp.com/send?phone=5518991955335&text=${mensagem}`, '_blank');
+  const handleAdoptClick = (animalId) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else {
+      setSelectedAnimalId(animalId);
+      setShowAdoptModal(true);
+    }
   };
 
-  const openFormularioAdocao = () => {
-    setShowFormularioAdocao(true);
-  };
-
-  const closeFormularioAdocao = () => {
-    setShowFormularioAdocao(false);
-    setDadosAdotante({
-      nome: '',
-      data_nascimento: '',
-      email: '',
-      telefone: '',
-      endereco: '',
-      cidade: '',
-    });
-  };
-
-  const handleChangeDadosAdotante = (e) => {
-    const { name, value } = e.target;
-    setDadosAdotante((prevDados) => ({
-      ...prevDados,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmitFormularioAdocao = async (e) => {
-    e.preventDefault();
+  const handleConfirmAdoption = async () => {
+    setAdoptionError('');
+    setAdoptionSuccess('');
     try {
-      const response = await fetch('http://localhost:3001/adocao', {
+      const pessoaId = localStorage.getItem('pessoaId');
+
+      const response = await fetch('http://localhost:3001/adocao/aplicar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(dadosAdotante),
+        body: JSON.stringify({
+          pessoa_id: pessoaId,
+          animal_id: selectedAnimalId,
+        }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro ao enviar formulário de adoção: ${errorText}`);
+      if (response.ok) {
+        setAdoptionSuccess('Aplicação para adoção realizada com sucesso!');
+        setShowAdoptModal(false);
+      } else {
+        const errorData = await response.json();
+        setAdoptionError(errorData.error || 'Erro ao aplicar para adoção.');
       }
-
-      closeFormularioAdocao();
     } catch (error) {
-      console.error('Erro ao enviar formulário de adoção:', error);
+      console.error('Erro ao aplicar para adoção:', error);
+      setAdoptionError('Erro ao conectar ao servidor.');
     }
   };
 
@@ -184,8 +194,8 @@ function Home() {
             <CInputGroup>
               <CFormSelect
                 aria-label="Filtrar por Espécie"
-                name="especie"
-                value={filtros.especie}
+                name="especie_id"
+                value={filtros.especie_id}
                 onChange={handleFilterChange}
               >
                 <option value="">Todas as Espécies</option>
@@ -206,8 +216,8 @@ function Home() {
                 onChange={handleFilterChange}
               >
                 <option value="">Todos os Sexos</option>
-                <option value="Macho">Macho</option>
-                <option value="Fêmea">Fêmea</option>
+                <option value="M">Macho</option>
+                <option value="F">Fêmea</option>
               </CFormSelect>
             </CInputGroup>
           </CCol>
@@ -215,8 +225,8 @@ function Home() {
             <CInputGroup>
               <CFormSelect
                 aria-label="Filtrar por Castração"
-                name="castracao"
-                value={filtros.castracao}
+                name="castrado"
+                value={filtros.castrado}
                 onChange={handleFilterChange}
               >
                 <option value="">Todos</option>
@@ -229,55 +239,69 @@ function Home() {
         <p className="mb-1">
           Foram encontrados {animaisFiltrados.length} animais disponíveis para adoção:
         </p>
+        {adoptionError && <CAlert color="danger" className="mt-3">{adoptionError}</CAlert>}
+        {adoptionSuccess && <CAlert color="success" className="mt-3">{adoptionSuccess}</CAlert>}
       </CContainer>
 
       <CContainer>
         <CRow>
-          {animaisFiltrados.map((animal) => (
-            <CCol key={animal.id} lg={6} className="mb-3">
-              <CCard>
-                {animal.foto_url && <CCardImage orientation="top" src={animal.foto_url} />}
-                <CCardBody>
-                  <CCardTitle>{animal.nome}</CCardTitle>
-                  <CCardText>
-                    <strong>Espécie:</strong> {especiesMap[animal.especie]}
-                    <br />
-                    <strong>Sexo:</strong> {animal.sexo}
-                    <br />
-                    <strong>Castrado:</strong> {animal.castracao === 1 ? 'Sim' : 'Não'}
-                    <br />
-                    <strong>Idade:</strong> {calcularIdade(animal.data_nascimento_aproximada)}
-                    <br />
-                  </CCardText>
-                  <CButton
-                    color="success"
-                    className="me-2"
-                    onClick={() => openWhatsApp(animal.nome)}
-                  >
-                    Quero adotar <CIcon icon={cilPhone} />
-                  </CButton>
-                  <CButton
-                    color="info"
-                    onClick={() => handleViewMoreInfo(animal.id)}
-                  >
-                    Ver mais informações <CIcon icon={cilSearch} />
-                  </CButton>
-                </CCardBody>
-              </CCard>
-            </CCol>
-          ))}
+          {animaisFiltrados.map((animal) => {
+            const imageUrl =
+              animal.imagens && animal.imagens.length > 0
+                ? `http://localhost:3001${animal.imagens[0].url}`
+                : null;
+
+            return (
+              <CCol key={animal.id} lg={6} className="mb-3">
+                <CCard>
+                  {imageUrl && <CCardImage orientation="top" src={imageUrl} />}
+                  <CCardBody>
+                    <CCardTitle>{animal.nome}</CCardTitle>
+                    <CCardText>
+                      <strong>Espécie:</strong> {especiesMap[animal.especie_id]}
+                      <br />
+                      <strong>Sexo:</strong> {animal.sexo === 'M' ? 'Macho' : 'Fêmea'}
+                      <br />
+                      <strong>Castrado:</strong> {animal.castrado ? 'Sim' : 'Não'}
+                      <br />
+                      <strong>Idade:</strong> {calcularIdade(animal.data_nascimento_aproximada)}
+                      <br />
+                    </CCardText>
+                    <CButton
+                      color="success"
+                      className="me-2"
+                      onClick={() => handleAdoptClick(animal.id)}
+                    >
+                      Quero adotar <CIcon icon={cilHeart} />
+                    </CButton>
+                    <CButton color="info" onClick={() => handleViewMoreInfo(animal.id)}>
+                      Ver mais informações <CIcon icon={cilSearch} />
+                    </CButton>
+                  </CCardBody>
+                </CCard>
+              </CCol>
+            );
+          })}
         </CRow>
       </CContainer>
 
-      <CModal visible={showFormularioAdocao} onClose={closeFormularioAdocao} size="lg">
+      {/* Adoption Confirmation Modal */}
+      <CModal visible={showAdoptModal} onClose={() => setShowAdoptModal(false)}>
         <CModalHeader>
-          <CModalTitle>Formulário de Adoção</CModalTitle>
+          <CModalTitle>Confirmar Adoção</CModalTitle>
         </CModalHeader>
         <CModalBody>
-          <CForm onSubmit={handleSubmitFormularioAdocao}>
-            {/* Formulário de Adoção */}
-          </CForm>
+          Tem certeza que deseja aplicar para a adoção deste animal?
+
         </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setShowAdoptModal(false)}>
+            Cancelar
+          </CButton>
+          <CButton color="primary" onClick={handleConfirmAdoption}>
+            Confirmar
+          </CButton>
+        </CModalFooter>
       </CModal>
     </>
   );

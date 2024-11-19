@@ -1,10 +1,12 @@
-// src/store.js
 import { configureStore, createSlice } from '@reduxjs/toolkit';
 
-// (temporário)Ver o que está no localStorage na hora que recarrega a página
-console.log(localStorage.getItem('token'))
-console.log(localStorage.getItem('user'))
-console.log(localStorage.getItem('role'))
+// (temporário) Ver o que está no localStorage na hora que recarrega a página
+console.log(localStorage.getItem('token'));
+console.log(localStorage.getItem('userId'));
+console.log(localStorage.getItem('pessoaId'));
+console.log(localStorage.getItem('userEmail'));
+console.log(localStorage.getItem('userNome'));
+console.log(localStorage.getItem('userRole'));
 
 const uiSlice = createSlice({
   name: 'ui',
@@ -25,42 +27,67 @@ const authSlice = createSlice({
   initialState: {
     isAuthenticated: !!localStorage.getItem('token'),
     token: localStorage.getItem('token'),
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    role: localStorage.getItem('role') || 'guest',
+    userId: localStorage.getItem('userId') || null,
+    userEmail: localStorage.getItem('userEmail') || null,
+    userNome: localStorage.getItem('userNome') || null,
+    userRole: localStorage.getItem('userRole') || '3',
+    hasSecurityQuestion: JSON.parse(localStorage.getItem('hasSecurityQuestion')) || false,
     error: null,
   },
   reducers: {
     loginUser: (state, action) => {
       state.isAuthenticated = true;
       state.token = action.payload.token;
-      state.user = action.payload.user;
-      state.role = action.payload.role;
+      state.userId = action.payload.userId;
+      state.pessoaId = action.payload.pessoaId;
+      state.userEmail = action.payload.userEmail;
+      state.userNome = action.payload.userNome;
+      state.userRole = action.payload.userRole;
+      state.hasSecurityQuestion = action.payload.hasSecurityQuestion;
       state.error = null;
 
       localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('user', action.payload.user.id);
-      localStorage.setItem('role', action.payload.role);
-
+      localStorage.setItem('userId', action.payload.userId);
+      localStorage.setItem('pessoaId', action.payload.pessoaId);
+      localStorage.setItem('userEmail', action.payload.userEmail);
+      localStorage.setItem('userNome', action.payload.userNome);
+      localStorage.setItem('userRole', action.payload.userRole);
+      localStorage.setItem(
+        'hasSecurityQuestion',
+        JSON.stringify(action.payload.hasSecurityQuestion)
+      );
     },
     logoutUser: (state) => {
       state.isAuthenticated = false;
       state.token = null;
-      state.user = null;
-      state.role = 'guest';
+      state.userId = null;
+      state.userEmail = null;
+      state.userNome = null;
+      state.userRole = '3';
+      state.hasSecurityQuestion = false;
       state.error = null;
 
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('role');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('pessoaId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userNome');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('hasSecurityQuestion');
     },
     setAuthError: (state, action) => {
       state.error = action.payload;
+    },
+    // Nova ação para atualizar hasSecurityQuestion
+    updateHasSecurityQuestion: (state, action) => {
+      state.hasSecurityQuestion = action.payload;
+      localStorage.setItem('hasSecurityQuestion', JSON.stringify(action.payload));
     },
   },
 });
 
 export const { set } = uiSlice.actions;
-export const { loginUser, logoutUser, setAuthError } = authSlice.actions;
+export const { loginUser, logoutUser, setAuthError, updateHasSecurityQuestion } = authSlice.actions;
 
 const store = configureStore({
   reducer: {

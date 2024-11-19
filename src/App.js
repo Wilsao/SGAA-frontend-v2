@@ -10,8 +10,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 const AppLayout = React.lazy(() => import('./layout/AppLayout'));
 const Login = React.lazy(() => import('./views/public/login/Login'));
+const EsqueciSenha = React.lazy(() => import('./views/public/usuario/EsqueciSenha'));
+const PerguntaDeSeguranca = React.lazy(() => import('./views/admin/usuario/PerguntaDeSeguranca'));
+const PessoaForm = React.lazy(() => import('./views/public/pessoa/PessoaForm'));
 const Page404 = React.lazy(() => import('./views/public/page404/Page404'));
-const Unauthorized = React.lazy(() => import('./views/public/Unauthorized'));
+const Unauthorized = React.lazy(() => import('./views/public/usuario/Unauthorized'));
 
 const App = () => {
   const dispatch = useDispatch();
@@ -35,8 +38,11 @@ const App = () => {
         }
       >
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/registro" element={<PessoaForm />} />
+        <Route path="/esqueci-a-senha" element={<EsqueciSenha />} />
+        <Route path="/definir-pergunta-de-seguranca" element={<PerguntaDeSeguranca />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
           {routes.map((route, idx) => {
             if (route.children) {
               return (
