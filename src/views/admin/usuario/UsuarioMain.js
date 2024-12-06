@@ -129,11 +129,6 @@ function UsuarioMain() {
         <CCol>
           <h2>Usuários</h2>
         </CCol>
-        <CCol className="text-end">
-          <CButton color="success" href="#/admin/usuario/novo" component={Link}>
-            Cadastrar Usuário +
-          </CButton>
-        </CCol>
       </CRow>
       <CCard>
         <CCardBody>

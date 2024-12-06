@@ -36,15 +36,7 @@ const AppHeaderDropdown = () => {
         <CAvatar src={avatar8} size="md" />
       </CDropdownToggle>
       <CDropdownMenu className="pt-0" placement="bottom-end">
-        <CDropdownHeader className="bg-body-secondary fw-semibold mb-2">Lembrete</CDropdownHeader>
-        <CDropdownItem href="#">
-          <CIcon icon={cilTask} className="me-2" />
-          Tarefas
-          <CBadge color="danger" className="ms-2">
-            3
-          </CBadge>
-        </CDropdownItem>
-        <CDropdownHeader className="bg-body-secondary fw-semibold my-2">Configurações</CDropdownHeader>
+        <CDropdownHeader className="bg-body-secondary fw-semibold my-2">Administrador</CDropdownHeader>
         <CDropdownItem href={`#/admin/usuario/editar/${userId}`}>
           <CIcon icon={cilUser} className="me-2" />
           Perfil

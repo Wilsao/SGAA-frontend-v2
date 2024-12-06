@@ -1,247 +1,318 @@
-// src/views/dashboard/DashboardMain.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react'
 import {
-  CCard,
-  CCardBody,
-  CCardHeader,
-  CCol,
   CRow,
-  CWidgetStatsA,
+  CCol,
+  CCard,
+  CCardHeader,
+  CCardBody,
   CAlert,
-} from '@coreui/react';
-import { CChartLine, CChartBar, CChartPie } from '@coreui/react-chartjs';
-import CIcon from '@coreui/icons-react';
-import { cilPaw, cilMedicalCross, cilDollar } from '@coreui/icons';
+  CFormSelect,
+  CWidgetStatsA,
+} from '@coreui/react'
+import { CChartPie, CChartBar, CChartLine } from '@coreui/react-chartjs'
+import CIcon from '@coreui/icons-react'
+import { cilPaw, cilDollar } from '@coreui/icons'
+import authFetch from '../../../utils/authFetch' // Ajuste conforme necessário
 
-import authFetch from '../../../utils/authFetch';
+const DashboardGeral = () => {
+  // -------------------------------------------------------
+  // SEÇÃO DE ANIMAIS
+  // -------------------------------------------------------
+  const [animals, setAnimals] = useState([])
+  const [speciesList, setSpeciesList] = useState([])
+  const [statusList, setStatusList] = useState([])
+  const [errorMessage, setErrorMessage] = useState('')
 
-const DashboardMain = () => {
-  const [animals, setAnimals] = useState([]);
-  const [castrations, setCastrations] = useState([]);
-  const [fundraisings, setFundraisings] = useState([]);
-  const [speciesData, setSpeciesData] = useState([]);
+  const [selectedSpecies, setSelectedSpecies] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedSex, setSelectedSex] = useState('all')
 
-  const [chartData, setChartData] = useState({
-    labels: [],
-    resgatadosMes: [],
-    adotadosMes: [],
-    castradosMes: [],
-    arrecadadoMes: [],
-    disponiveis: [],
-    emTratamento: [],
-  });
-
-  const [totals, setTotals] = useState({
-    totalResgatados: 0,
-    totalCastrados: 0,
-    totalArrecadado: 0,
-    totalAdotados: 0,
-  });
-
-  const [animalStats, setAnimalStats] = useState({
-    totalCaes: 0,
-    totalGatos: 0,
-    caesData: [],
-    gatosData: [],
-  });
-
-  const [errorMessage, setErrorMessage] = useState('');
-
-  // obter os últimos 6 meses
-  const getLastSixMonthsLabels = () => {
-    const now = new Date();
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push(monthDate.toLocaleString('pt-BR', { month: 'short' }));
-    }
-    return months;
-  };
-
-  // contar eventos por mês
-  const getCountsPerMonth = (dataArray, dateField, valueField) => {
-    const counts = Array(6).fill(0);
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const month = monthDate.getMonth();
-      const year = monthDate.getFullYear();
-      counts[5 - i] = dataArray.reduce((acc, item) => {
-        const itemDate = new Date(item[dateField]);
-        if (itemDate.getMonth() === month && itemDate.getFullYear() === year) {
-          if (valueField) {
-            return acc + parseFloat(item[valueField]);
-          } else {
-            return acc + 1;
-          }
-        }
-        return acc;
-      }, 0);
-    }
-    return counts;
-  };
+  const [filteredAnimals, setFilteredAnimals] = useState([])
+  const [totalAnimals, setTotalAnimals] = useState(0)
+  const [speciesStats, setSpeciesStats] = useState({})
+  const [statusStats, setStatusStats] = useState({})
+  const [genderStats, setGenderStats] = useState({ macho: 0, femea: 0 })
+  const [speciesSexCount, setSpeciesSexCount] = useState({})
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [animalsResponse, castrationsResponse, fundraisingsResponse, speciesResponse] = await Promise.all([
-          authFetch('http://localhost:3001/animal', { method: 'GET' }),
-          authFetch('http://localhost:3001/castracao', { method: 'GET' }),
-          authFetch('http://localhost:3001/arrecadacao', { method: 'GET' }),
-          authFetch('http://localhost:3001/especie', { method: 'GET' }),
-        ]);
+        const [animalsRes, speciesRes, statusRes] = await Promise.all([
+          fetch('http://localhost:3001/animal'),
+          fetch('http://localhost:3001/especie'),
+          fetch('http://localhost:3001/statusanimal'),
+        ])
 
-        if (!animalsResponse.ok || !castrationsResponse.ok || !fundraisingsResponse.ok || !speciesResponse.ok) {
-          throw new Error('Erro ao buscar dados do backend.');
+        if (!animalsRes.ok || !speciesRes.ok || !statusRes.ok) {
+          throw new Error('Falha ao carregar dados iniciais de animais.')
         }
 
-        const [animalsData, castrationsData, fundraisingsData, speciesData] = await Promise.all([
-          animalsResponse.json(),
-          castrationsResponse.json(),
-          fundraisingsResponse.json(),
-          speciesResponse.json(),
-        ]);
+        const [animalsData, speciesData, statusData] = await Promise.all([
+          animalsRes.json(),
+          speciesRes.json(),
+          statusRes.json(), // Correção feita aqui
+        ])
 
-        setAnimals(animalsData);
-        setCastrations(castrationsData);
-        setFundraisings(fundraisingsData);
-        setSpeciesData(speciesData);
+        setAnimals(animalsData)
+        setSpeciesList(speciesData)
+        setStatusList(statusData)
       } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-        setErrorMessage('Erro ao buscar dados do backend.');
+        console.error(error)
+        setErrorMessage('Não foi possível carregar os dados de animais do backend.')
       }
-    };
+    }
 
-    fetchData();
-  }, []);
+    fetchData()
+  }, [])
 
   useEffect(() => {
-    if (animals.length && castrations.length && fundraisings.length && speciesData.length) {
-      const months = getLastSixMonthsLabels();
+    if (!animals || !animals.length) return
 
-      const speciesMap = {};
-      speciesData.forEach(species => {
-        speciesMap[species.id] = species.nome;
-      });
+    let filtered = [...animals]
 
-      // Contagens por mês
-      const resgatadosMes = getCountsPerMonth(animals, 'data_ocorrencia');
-
-      const castradosMes = getCountsPerMonth(castrations, 'data_evento');
-
-      const arrecadadoMes = getCountsPerMonth(fundraisings, 'data_evento', 'valor_arrecadado');
-
-      // Determinar animais adotados
-      const adoptedAnimals = animals.filter(animal => animal.status === 'adotado');  // precisa ajustar
-      const adotadosMes = getCountsPerMonth(adoptedAnimals, 'data_adocao'); // precisa ajustar
-
-      // Processar estatísticas dos animais
-      const caesCounts = {
-        Macho: 0,
-        Fêmea: 0,
-        MachoCastrado: 0,
-        FêmeaCastrada: 0,
-      };
-
-      const gatosCounts = {
-        Macho: 0,
-        Fêmea: 0,
-        MachoCastrado: 0,
-        FêmeaCastrada: 0,
-      };
-
-      animals.forEach(animal => {
-        const especieNome = speciesMap[animal.especie];
-        const sexo = animal.sexo;
-        const castrado = animal.castracao === '1';
-
-        if (especieNome === 'Cachorro') {
-          if (sexo === 'Macho') {
-            if (castrado) {
-              caesCounts.MachoCastrado += 1;
-            } else {
-              caesCounts.Macho += 1;
-            }
-          } else if (sexo === 'Fêmea') {
-            if (castrado) {
-              caesCounts.FêmeaCastrada += 1;
-            } else {
-              caesCounts.Fêmea += 1;
-            }
-          }
-        } else if (especieNome === 'Gato') {
-          if (sexo === 'Macho') {
-            if (castrado) {
-              gatosCounts.MachoCastrado += 1;
-            } else {
-              gatosCounts.Macho += 1;
-            }
-          } else if (sexo === 'Fêmea') {
-            if (castrado) {
-              gatosCounts.FêmeaCastrada += 1;
-            } else {
-              gatosCounts.Fêmea += 1;
-            }
-          }
-        }
-      });
-
-      const totalCaes =
-        caesCounts.Macho + caesCounts.Fêmea + caesCounts.MachoCastrado + caesCounts.FêmeaCastrada;
-
-      const totalGatos =
-        gatosCounts.Macho + gatosCounts.Fêmea + gatosCounts.MachoCastrado + gatosCounts.FêmeaCastrada;
-
-      // Animais disponíveis para adoção e em tratamento
-      const caesDisponiveis = animals.filter(
-        animal => speciesMap[animal.especie] === 'Cachorro' && animal.adocao === '1'
-      ).length;
-      const gatosDisponiveis = animals.filter(
-        animal => speciesMap[animal.especie] === 'Gato' && animal.adocao === '1'
-      ).length;
-
-      const caesEmTratamento = totalCaes - caesDisponiveis;
-      const gatosEmTratamento = totalGatos - gatosDisponiveis;
-
-      // Atualizar estados
-      setChartData({
-        labels: months,
-        resgatadosMes,
-        adotadosMes,
-        castradosMes,
-        arrecadadoMes,
-        disponiveis: [caesDisponiveis, gatosDisponiveis],
-        emTratamento: [caesEmTratamento, gatosEmTratamento],
-      });
-
-      setTotals({
-        totalResgatados: animals.length,
-        totalCastrados: castrations.length,
-        totalArrecadado: fundraisings.reduce((acc, item) => acc + parseFloat(item.valor_arrecadado), 0),
-        totalAdotados: adoptedAnimals.length,
-      });
-
-      setAnimalStats({
-        totalCaes,
-        totalGatos,
-        caesData: [
-          caesCounts.Macho,
-          caesCounts.Fêmea,
-          caesCounts.MachoCastrado,
-          caesCounts.FêmeaCastrada,
-        ],
-        gatosData: [
-          gatosCounts.Macho,
-          gatosCounts.Fêmea,
-          gatosCounts.MachoCastrado,
-          gatosCounts.FêmeaCastrada,
-        ],
-      });
+    if (selectedSpecies !== 'all') {
+      filtered = filtered.filter((animal) => {
+        const especieId = animal.especie?.id
+        return especieId && especieId.toString() === selectedSpecies.toString()
+      })
     }
-  }, [animals, castrations, fundraisings, speciesData]);
+
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter((animal) => {
+        const statusId = animal.statusAnimal?.id
+        return statusId && statusId.toString() === selectedStatus.toString()
+      })
+    }
+
+    if (selectedSex !== 'all') {
+      filtered = filtered.filter((animal) => {
+        if (!animal.sexo) return false
+        return animal.sexo.toLowerCase().includes(selectedSex.toLowerCase())
+      })
+    }
+
+    setFilteredAnimals(filtered)
+  }, [animals, selectedSpecies, selectedStatus, selectedSex])
+
+  useEffect(() => {
+    if (filteredAnimals.length === 0) {
+      setTotalAnimals(0)
+      setSpeciesStats({})
+      setStatusStats({})
+      setGenderStats({ macho: 0, femea: 0 })
+      setSpeciesSexCount({})
+      return
+    }
+
+    const total = filteredAnimals.length
+    const especieCount = {}
+    const statusCount = {}
+    let machoCount = 0
+    let femeaCount = 0
+    const speciesSex = {}
+
+    filteredAnimals.forEach((animal) => {
+      const nomeEspecie = animal.especie?.nome || 'Desconhecido'
+      const nomeStatus = animal.statusAnimal?.nome || 'Sem Status'
+      const sexo = animal.sexo?.toLowerCase().startsWith('f') ? 'femea' : 'macho'
+
+      especieCount[nomeEspecie] = (especieCount[nomeEspecie] || 0) + 1
+      statusCount[nomeStatus] = (statusCount[nomeStatus] || 0) + 1
+
+      if (sexo === 'macho') machoCount++
+      else femeaCount++
+
+      if (!speciesSex[nomeEspecie]) {
+        speciesSex[nomeEspecie] = { macho: 0, femea: 0 }
+      }
+      speciesSex[nomeEspecie][sexo] += 1
+    })
+
+    setTotalAnimals(total)
+    setSpeciesStats(especieCount)
+    setStatusStats(statusCount)
+    setGenderStats({ macho: machoCount, femea: femeaCount })
+    setSpeciesSexCount(speciesSex)
+  }, [filteredAnimals])
+
+  const speciesSexLabels = Object.keys(speciesSexCount)
+  const speciesMachoData = speciesSexLabels.map(sp => speciesSexCount[sp].macho)
+  const speciesFemeaData = speciesSexLabels.map(sp => speciesSexCount[sp].femea)
+
+  const statusLabels = Object.keys(statusStats)
+  const statusDataAnimals = Object.values(statusStats)
+
+  // -------------------------------------------------------
+  // SEÇÃO DE ARRECADAÇÕES
+  // -------------------------------------------------------
+  const [availableYears, setAvailableYears] = useState([])
+  const [selectedYearArrec, setSelectedYearArrec] = useState(null)
+  const [arrecadacoes, setArrecadacoes] = useState([])
+  const [errorMessageArrec, setErrorMessageArrec] = useState('')
+  const [allYearsTotal, setAllYearsTotal] = useState(0)
+
+  useEffect(() => {
+    const currentYear = new Date().getFullYear()
+    const yearsToCheck = []
+    for (let y = 2020; y <= currentYear; y++) {
+      yearsToCheck.push(y)
+    }
+
+    const checkYears = async () => {
+      const foundYears = []
+      let sumAllYears = 0
+      for (const year of yearsToCheck) {
+        try {
+          const res = await authFetch(`http://localhost:3001/arrecadacao/filtrarPorAno/${year}`, { method: 'GET' })
+          if (res.ok) {
+            const data = await res.json()
+            if (data && data.length > 0) {
+              foundYears.push(year)
+              data.forEach(item => {
+                sumAllYears += parseFloat(item.valor_arrecadado || 0)
+              })
+            }
+          }
+        } catch (err) {
+          console.error(`Falha ao verificar ano ${year}:`, err)
+        }
+      }
+
+      setAvailableYears(foundYears)
+      if (foundYears.length > 0) {
+        setSelectedYearArrec(foundYears[0])
+      }
+
+      setAllYearsTotal(sumAllYears)
+    }
+
+    checkYears()
+  }, [])
+
+  useEffect(() => {
+    if (!selectedYearArrec) return
+    const fetchArrecadacoes = async () => {
+      try {
+        const response = await authFetch(`http://localhost:3001/arrecadacao/filtrarPorAno/${selectedYearArrec}`, { method: 'GET' })
+        if (!response.ok) {
+          throw new Error('Falha ao obter dados de arrecadações para o ano selecionado.')
+        }
+        const data = await response.json()
+        setArrecadacoes(data)
+      } catch (error) {
+        console.error(error)
+        setErrorMessageArrec('Não foi possível carregar os dados de arrecadações.')
+      }
+    }
+
+    fetchArrecadacoes()
+  }, [selectedYearArrec])
+
+  const monthlySums = new Array(12).fill(0)
+  arrecadacoes.forEach(item => {
+    const date = item.data_evento ? new Date(item.data_evento) : new Date(item.createdAt)
+    const month = date.getMonth()
+    const valor = parseFloat(item.valor_arrecadado || 0)
+    monthlySums[month] += valor
+  })
+
+  const totalYearArrec = monthlySums.reduce((a, b) => a + b, 0)
+  const monthLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
+  // -------------------------------------------------------
+  // SEÇÃO DE ADOÇÕES
+  // -------------------------------------------------------
+  const [adocoes, setAdocoes] = useState([])
+  const [statusAdocaoList, setStatusAdocaoList] = useState([])
+  const [selectedYearAdocao, setSelectedYearAdocao] = useState('all')
+  const [errorMessageAdocao, setErrorMessageAdocao] = useState('')
+
+  useEffect(() => {
+    const fetchAdocaoData = async () => {
+      try {
+        const [adocaoRes, statusAdocaoRes] = await Promise.all([
+          fetch('http://localhost:3001/adocao'),
+          fetch('http://localhost:3001/statusadocao'),
+        ])
+
+        if (!adocaoRes.ok || !statusAdocaoRes.ok) {
+          throw new Error('Falha ao carregar dados de adoções e status de adoção.')
+        }
+
+        const [adocaoData, statusAdocaoData] = await Promise.all([
+          adocaoRes.json(),
+          statusAdocaoRes.json(),
+        ])
+
+        setAdocoes(adocaoData)
+        setStatusAdocaoList(statusAdocaoData)
+      } catch (error) {
+        console.error(error)
+        setErrorMessageAdocao('Não foi possível carregar os dados de adoções.')
+      }
+    }
+
+    fetchAdocaoData()
+  }, [])
+
+  const adocaoYears = useMemo(() => {
+    const yearsSet = new Set()
+    adocoes.forEach(ad => {
+      const date = ad.createdAt ? new Date(ad.createdAt) : null
+      if (date) {
+        yearsSet.add(date.getFullYear())
+      }
+    })
+    return Array.from(yearsSet).sort()
+  }, [adocoes])
+
+  const filteredAdocoes = useMemo(() => {
+    let result = [...adocoes]
+    if (selectedYearAdocao !== 'all') {
+      result = result.filter(ad => {
+        const date = ad.createdAt ? new Date(ad.createdAt) : null
+        return date && date.getFullYear().toString() === selectedYearAdocao
+      })
+    }
+    return result
+  }, [adocoes, selectedYearAdocao])
+
+  const totalAdocoes = filteredAdocoes.length
+  const allAdocoesTotal = adocoes.length
+  const yearAdocoesTotal = totalAdocoes // Adoções filtradas pelo ano
+  // Se selectedYearAdocao == 'all', yearAdocoesTotal == allAdocoesTotal
+
+  // Distribuição por Status (mostra todos os status)
+  const adocaoStatusCount = {}
+  filteredAdocoes.forEach(ad => {
+    const nomeStatus = ad.status_adocao?.nome || 'Desconhecido'
+    adocaoStatusCount[nomeStatus] = (adocaoStatusCount[nomeStatus] || 0) + 1
+  })
+  const adocaoStatusLabels = Object.keys(adocaoStatusCount)
+  const adocaoStatusData = Object.values(adocaoStatusCount)
+
+  // Adoções aprovadas (status_id = 3) por mês, usando updatedAt
+  const approvedAdocoes = filteredAdocoes.filter(ad => ad.status_adocao?.id === 3)
+  const monthlyAdocoes = new Array(12).fill(0)
+  approvedAdocoes.forEach(ad => {
+    const date = ad.updatedAt ? new Date(ad.updatedAt) : null
+    if (date) {
+      const m = date.getMonth()
+      monthlyAdocoes[m] += 1
+    }
+  })
+
+  const adocaoAnoTitulo = selectedYearAdocao === 'all' ? 'Todos' : selectedYearAdocao.toString()
 
   return (
     <>
+      <CRow className="mt-3 align-items-center">
+        <CCol>
+          <h2>Dashboard</h2>
+        </CCol>
+      </CRow>
+
+      {/* SEÇÃO DE ANIMAIS */}
       {errorMessage && (
         <CRow>
           <CCol>
@@ -249,293 +320,329 @@ const DashboardMain = () => {
           </CCol>
         </CRow>
       )}
-      <CRow>
-        <CCol xs={12}>
-          <CCard className="p-3 mb-4">
-            <h4>Animais no Abrigo</h4>
-            <CCardBody className="p-0">
-              <CRow>
-                <CCol md={12} lg={6}>
-                  <CCard className="mb-4">
-                    <CCardHeader>{animalStats.totalCaes} Cães</CCardHeader>
-                    <CCardBody>
-                      <CChartPie
-                        data={{
-                          // labels: ['Machos', 'Fêmeas', 'Machos Castrados', 'Fêmeas Castradas'],
-                          labels: ['Machos', 'Fêmeas'],
-                          datasets: [
-                            {
-                              data: animalStats.caesData,
-                              // backgroundColor: ['#6ca0dc', '#FFC0CB', '#4BC0C0', '#FFCE56'],
-                              backgroundColor: ['#6ca0dc', '#FFC0CB'],
-                            },
-                          ],
-                        }}
-                        options={{
-                          plugins: {
-                            tooltip: { enabled: true },
-                            legend: {
-                              display: true,
-                              position: 'left',
-                            },
-                          },
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          layout: {
-                            padding: {
-                              left: 10,
-                            },
-                          },
-                        }}
-                      />
-                    </CCardBody>
-                  </CCard>
-                </CCol>
-
-                <CCol md={12} lg={6}>
-                  <CCard className="mb-4">
-                    <CCardHeader>{animalStats.totalGatos} Gatos</CCardHeader>
-                    <CCardBody>
-                      <CChartPie
-                        data={{
-                          // labels: ['Machos', 'Fêmeas', 'Machos Castrados', 'Fêmeas Castradas'],
-                          labels: ['Machos', 'Fêmeas'],
-                          datasets: [
-                            {
-                              data: animalStats.gatosData,
-                              // backgroundColor: ['#6ca0dc', '#FFC0CB', '#4BC0C0', '#FFCE56'],
-                              backgroundColor: ['#6ca0dc', '#FFC0CB'],
-                            },
-                          ],
-                        }}
-                        options={{
-                          plugins: {
-                            tooltip: { enabled: true },
-                            legend: {
-                              display: true,
-                              position: 'left',
-                            },
-                          },
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          layout: {
-                            padding: {
-                              left: 10,
-                            },
-                          },
-                        }}
-                      />
-                    </CCardBody>
-                  </CCard>
-                </CCol>
-              </CRow>
-
-              <CRow>
-                <CCol xs={12}>
-                  <CCard className="mb-4">
-                    <CCardHeader>Status dos Animais no Abrigo</CCardHeader>
-                    <CCardBody>
-                      <CChartBar
-                        data={{
-                          labels: ['Cães', 'Gatos'],
-                          datasets: [
-                            {
-                              label: 'Disponíveis para Adoção',
-                              backgroundColor: '#36A2EB',
-                              borderColor: '#36A2EB',
-                              borderWidth: 1,
-                              barThickness: 20,
-                              data: chartData.disponiveis,
-                            },
-                            {
-                              label: 'Em Tratamento',
-                              backgroundColor: '#db5d5d',
-                              borderColor: '#db5d5d',
-                              borderWidth: 1,
-                              barThickness: 20,
-                              data: chartData.emTratamento,
-                            },
-                          ],
-                        }}
-                        options={{
-                          indexAxis: 'y',
-                          plugins: {
-                            tooltip: { enabled: true },
-                            legend: { display: true },
-                          },
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          scales: { x: { beginAtZero: true } },
-                        }}
-                      />
-                    </CCardBody>
-                  </CCard>
-                </CCol>
-              </CRow>
-            </CCardBody>
-          </CCard>
+      <h3>Animais</h3>
+      <CRow className="mb-4">
+        <CCol xs={12} sm={3}>
+          <CWidgetStatsA
+            className="pb-3"
+            color="primary"
+            value={`${totalAnimals} Animais`}
+            title="Total Filtrado"
+            icon={<CIcon icon={cilPaw} height={36} />}
+          />
+        </CCol>
+        <CCol xs={12} sm={4}>
+          <CFormSelect
+            label="Filtrar por Espécie"
+            value={selectedSpecies}
+            onChange={(e) => setSelectedSpecies(e.target.value)}
+          >
+            <option value="all">Todas</option>
+            {speciesList.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nome}
+              </option>
+            ))}
+          </CFormSelect>
+        </CCol>
+        <CCol xs={12} sm={4}>
+          <CFormSelect
+            label="Filtrar por Status"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
+            <option value="all">Todos</option>
+            {statusList.map((st) => (
+              <option key={st.id} value={st.id}>
+                {st.nome}
+              </option>
+            ))}
+          </CFormSelect>
         </CCol>
       </CRow>
-
-      <CRow>
-        <CCol xs={12}>
-          <CCard className="p-3 mb-4">
-            <h4>Total</h4>
-            <CRow>
-              <CCol xs={12} sm={4}>
-                <CWidgetStatsA
-                  className="mb-4"
-                  color="primary"
-                  value={`${totals.totalResgatados} Animais Resgatados`}
-                  chart={
-                    <CChartLine
-                      data={{
-                        labels: chartData.labels,
-                        datasets: [
-                          {
-                            label: 'Resgatados',
-                            backgroundColor: 'transparent',
-                            borderColor: 'rgba(255,255,255,.55)',
-                            pointBackgroundColor: '#5856d6',
-                            data: chartData.resgatadosMes,
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: {
-                          legend: { display: false },
-                          tooltip: { enabled: true },
+      {filteredAnimals.length === 0 ? (
+        <CAlert color="info">Nenhum animal encontrado com os filtros selecionados.</CAlert>
+      ) : (
+        <>
+          <CRow>
+            <CCol xs={12} md={6}>
+              <CCard className="mb-4">
+                <CCardHeader>Distribuição por Espécie e Sexo</CCardHeader>
+                <CCardBody>
+                  <CChartBar
+                    data={{
+                      labels: speciesSexLabels,
+                      datasets: [
+                        {
+                          label: 'Macho',
+                          backgroundColor: '#4BC0C0',
+                          data: speciesMachoData,
                         },
-                        maintainAspectRatio: false,
-                        scales: { x: { display: false }, y: { display: false } },
-                        elements: {
-                          line: { borderWidth: 1, tension: 0.4 },
-                          point: { radius: 4, hitRadius: 10, hoverRadius: 4 },
+                        {
+                          label: 'Fêmea',
+                          backgroundColor: '#FF9F40',
+                          data: speciesFemeaData,
                         },
-                      }}
-                    />
-                  }
-                  icon={<CIcon icon={cilPaw} height={36} />}
-                />
-              </CCol>
+                      ],
+                    }}
+                    options={{
+                      plugins: {
+                        tooltip: { enabled: true },
+                        legend: { display: true },
+                      },
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: { beginAtZero: true },
+                      },
+                    }}
+                  />
+                </CCardBody>
+              </CCard>
+            </CCol>
 
-              <CCol xs={12} sm={4}>
-                <CWidgetStatsA
-                  className="mb-4"
-                  color="success"
-                  value={`${totals.totalCastrados} Animais Castrados`}
-                  chart={
-                    <CChartBar
-                      data={{
-                        labels: chartData.labels,
-                        datasets: [
-                          {
-                            label: 'Castrados',
-                            backgroundColor: 'rgba(255,255,255,.2)',
-                            borderColor: 'rgba(255,255,255,.55)',
-                            data: chartData.castradosMes,
-                            barThickness: 10,
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: {
-                          legend: { display: false },
-                          tooltip: { enabled: true },
+            <CCol xs={12} md={6}>
+              <CCard className="mb-4">
+                <CCardHeader>Distribuição por Status</CCardHeader>
+                <CCardBody>
+                  <CChartBar
+                    data={{
+                      labels: statusLabels,
+                      datasets: [
+                        {
+                          label: 'Quantidade',
+                          backgroundColor: '#36A2EB',
+                          data: statusDataAnimals,
+                          barThickness: 30,
                         },
-                        maintainAspectRatio: false,
-                        scales: { x: { display: false }, y: { display: false } },
-                      }}
-                    />
-                  }
-                  icon={<CIcon icon={cilMedicalCross} height={36} />}
-                />
-              </CCol>
+                      ],
+                    }}
+                    options={{
+                      plugins: {
+                        tooltip: { enabled: true },
+                        legend: { display: false },
+                      },
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: { beginAtZero: true },
+                      },
+                    }}
+                  />
+                </CCardBody>
+              </CCard>
+            </CCol>
+          </CRow>
+        </>
+      )}
 
-              <CCol xs={12} sm={4}>
-                <CWidgetStatsA
-                  className="mb-4"
-                  color="warning"
-                  value={`R$ ${totals.totalArrecadado.toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })} Arrecadado`}
-                  chart={
-                    <CChartLine
-                      data={{
-                        labels: chartData.labels,
-                        datasets: [
-                          {
-                            label: 'Arrecadado',
-                            backgroundColor: 'rgba(255,255,255,.2)',
-                            borderColor: 'rgba(255,255,255,.55)',
-                            data: chartData.arrecadadoMes,
-                            fill: false,
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: {
-                          legend: { display: false },
-                          tooltip: { enabled: true },
-                        },
-                        maintainAspectRatio: false,
-                        scales: { x: { display: false }, y: { display: false } },
-                        elements: { line: { tension: 0.4 }, point: { radius: 3 } },
-                      }}
-                    />
-                  }
-                  icon={<CIcon icon={cilDollar} height={36} />}
-                />
-              </CCol>
-            </CRow>
-          </CCard>
-        </CCol>
-      </CRow>
+      {/* SEÇÃO DE ADOÇÕES */}
+      <h3 className="mt-5">Adoções</h3>
+      {errorMessageAdocao && (
+        <CRow>
+          <CCol>
+            <CAlert color="danger">{errorMessageAdocao}</CAlert>
+          </CCol>
+        </CRow>
+      )}
 
-      {/* <CRow>
-        <CCol xs={12}>
-          <CCard className="mb-4">
-            <CCardHeader>Adoções e Resgates ao Longo do Tempo</CCardHeader>
-            <CCardBody>
-              <CChartLine
-                data={{
-                  labels: chartData.labels,
-                  datasets: [
-                    {
-                      label: 'Adoções',
-                      backgroundColor: 'rgba(75,192,192,0.2)',
-                      borderColor: 'rgba(75,192,192,1)',
-                      pointBackgroundColor: 'rgba(75,192,192,1)',
-                      pointBorderColor: '#fff',
-                      data: chartData.adotadosMes,
-                    },
-                    {
-                      label: 'Animais Resgatados',
-                      backgroundColor: 'rgba(255,99,132,0.2)',
-                      borderColor: 'rgba(255,99,132,1)',
-                      pointBackgroundColor: 'rgba(255,99,132,1)',
-                      pointBorderColor: '#fff',
-                      data: chartData.resgatadosMes,
-                    },
-                  ],
-                }}
-                options={{
-                  plugins: {
-                    tooltip: { enabled: true },
-                    legend: { display: true },
-                  },
-                  maintainAspectRatio: false,
-                  scales: { x: { display: true }, y: { display: true } },
-                  elements: { line: { tension: 0.4 }, point: { radius: 3 } },
-                }}
+      {filteredAdocoes.length === 0 ? (
+        <CAlert color="info">Nenhuma adoção encontrada com os filtros selecionados.</CAlert>
+      ) : (
+        <>
+          <CRow className="mb-4">
+            <CCol xs={12} sm={3}>
+              <CWidgetStatsA
+                className="pb-3"
+                color="info"
+                value={`${yearAdocoesTotal} Adoções`}
+                title={`Total Ano: ${adocaoAnoTitulo}`}
               />
-            </CCardBody>
-          </CCard>
-        </CCol>
-      </CRow> */}
-    </>
-  );
-};
+            </CCol>
+            <CCol xs={12} sm={3}>
+              <CWidgetStatsA
+                className="pb-3"
+                color="warning"
+                value={`${allAdocoesTotal} Adoções`}
+                title="Total Geral"
+              />
+            </CCol>
+            <CCol xs={12} sm={4}>
+              <CFormSelect
+                label="Selecione o Ano"
+                value={selectedYearAdocao}
+                onChange={(e) => setSelectedYearAdocao(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                {adocaoYears.map(y => (
+                  <option key={y} value={y.toString()}>{y}</option>
+                ))}
+              </CFormSelect>
+            </CCol>
+          </CRow>
 
-export default DashboardMain;
+          <CRow>
+            <CCol xs={12} md={6}>
+              <CCard className="mb-4">
+                <CCardHeader>Distribuição por Status de Adoção</CCardHeader>
+                <CCardBody>
+                  <CChartPie
+                    data={{
+                      labels: adocaoStatusLabels,
+                      datasets: [
+                        {
+                          data: adocaoStatusData,
+                          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#cc65fe', '#ff9f40'],
+                        },
+                      ],
+                    }}
+                    options={{
+                      plugins: {
+                        tooltip: { enabled: true },
+                        legend: { display: true, position: 'left' },
+                      },
+                      responsive: true,
+                      maintainAspectRatio: false,
+                    }}
+                  />
+                </CCardBody>
+              </CCard>
+            </CCol>
+
+            <CCol xs={12} md={6}>
+              <CCard className="mb-4">
+                <CCardHeader>Adoções Aprovadas</CCardHeader>
+                <CCardBody>
+                  <CChartLine
+                    data={{
+                      labels: monthLabels,
+                      datasets: [
+                        {
+                          label: 'Adoções',
+                          backgroundColor: 'rgba(153,102,255,0.2)',
+                          borderColor: 'rgba(153,102,255,1)',
+                          pointBackgroundColor: 'rgba(153,102,255,1)',
+                          pointBorderColor: '#fff',
+                          data: monthlyAdocoes,
+                        },
+                      ],
+                    }}
+                    options={{
+                      plugins: {
+                        tooltip: { enabled: true },
+                        legend: { display: true },
+                      },
+                      maintainAspectRatio: false,
+                      scales: {
+                        x: { display: true },
+                        y: { display: true, beginAtZero: true },
+                      },
+                      elements: {
+                        line: { tension: 0.4 },
+                        point: { radius: 3 },
+                      },
+                    }}
+                  />
+                </CCardBody>
+              </CCard>
+            </CCol>
+          </CRow>
+        </>
+      )}
+
+      {/* SEÇÃO DE ARRECADAÇÕES */}
+      <h3 className="mt-5">Arrecadações</h3>
+      {errorMessageArrec && (
+        <CRow>
+          <CCol>
+            <CAlert color="danger">{errorMessageArrec}</CAlert>
+          </CCol>
+        </CRow>
+      )}
+
+      <CRow className="mb-4">
+        <CCol xs={12} sm={3}>
+          <CWidgetStatsA
+            className="pb-3"
+            color="info"
+            value={`R$ ${totalYearArrec.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            title={`Total Ano ${selectedYearArrec || ''}`}
+            icon={<CIcon icon={cilDollar} height={36} />}
+          />
+        </CCol>
+        <CCol xs={12} sm={3}>
+          <CWidgetStatsA
+            className="pb-3"
+            color="warning"
+            value={`R$ ${allYearsTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            title="Total Geral"
+            icon={<CIcon icon={cilDollar} height={36} />}
+          />
+        </CCol>
+        <CCol xs={12} sm={4}>
+          <CFormSelect
+            label="Selecione o Ano"
+            value={selectedYearArrec || ''}
+            onChange={(e) => setSelectedYearArrec(e.target.value)}
+          >
+            {availableYears.length === 0 ? (
+              <option>Nenhum ano disponível</option>
+            ) : (
+              availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))
+            )}
+          </CFormSelect>
+        </CCol>
+      </CRow>
+
+      {arrecadacoes.length === 0 ? (
+        <CAlert color="info">Nenhuma arrecadação encontrada para o ano selecionado.</CAlert>
+      ) : (
+        <CRow>
+          <CCol xs={12}>
+            <CCard className="mb-4">
+              <CCardHeader>
+                Arrecadações {selectedYearArrec}
+              </CCardHeader>
+              <CCardBody>
+                <CChartLine
+                  data={{
+                    labels: monthLabels,
+                    datasets: [
+                      {
+                        label: 'Valor Arrecadado R$',
+                        backgroundColor: 'rgba(75,192,192,0.2)',
+                        borderColor: 'rgba(75,192,192,1)',
+                        pointBackgroundColor: 'rgba(75,192,192,1)',
+                        pointBorderColor: '#fff',
+                        data: monthlySums,
+                      },
+                    ],
+                  }}
+                  options={{
+                    plugins: {
+                      tooltip: { enabled: true },
+                      legend: { display: true },
+                    },
+                    maintainAspectRatio: false,
+                    scales: {
+                      x: { display: true },
+                      y: { display: true, beginAtZero: true },
+                    },
+                    elements: {
+                      line: { tension: 0.4 },
+                      point: { radius: 3 },
+                    },
+                  }}
+                />
+              </CCardBody>
+            </CCard>
+          </CCol>
+        </CRow>
+      )}
+    </>
+  )
+}
+
+export default DashboardGeral

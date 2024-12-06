@@ -36,6 +36,7 @@ const AppHeader = () => {
   const sidebarShow = useSelector((state) => state.ui.sidebarShow);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
   const userNome = useSelector((state) => state.auth.userNome);
+  const userRole = useSelector((state) => state.auth.userRole);
 
   useEffect(() => {
     document.addEventListener('scroll', () => {
@@ -82,7 +83,7 @@ const AppHeader = () => {
           </li>
           {isLoggedIn ? (
             <>
-              <span className="me-3 mt-2">Olá, {userNome}</span>
+              <span className="me-3 pb-1">Olá, {userNome}</span>
               <AppHeaderDropdown />
             </>
           ) : (

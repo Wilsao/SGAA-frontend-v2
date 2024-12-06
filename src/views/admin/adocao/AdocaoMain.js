@@ -101,6 +101,12 @@ function AdocaoMain() {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
   return (
     <>
       <CContainer className="mt-3">
@@ -136,9 +142,11 @@ function AdocaoMain() {
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Data da Solicitação</th>
                   <th>Animal</th>
                   <th>Adotante</th>
                   <th>Status</th>
+                  <th>Observações</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -146,9 +154,11 @@ function AdocaoMain() {
                 {adocoes.map((adocao) => (
                   <tr key={adocao.id}>
                     <td>{adocao.id}</td>
+                    <td>{formatDate(adocao.createdAt)}</td>
                     <td>{adocao.animal ? adocao.animal.nome : 'N/A'}</td>
                     <td>{adocao.pessoa ? adocao.pessoa.nome : 'N/A'}</td>
                     <td>{adocao.status_adocao ? adocao.status_adocao.nome : 'N/A'}</td>
+                    <td>{adocao.observacao || ''}</td>
                     <td>
                       <CButton
                         color="primary"

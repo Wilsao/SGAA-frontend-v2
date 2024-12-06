@@ -38,6 +38,8 @@ const AnimalMain = () => {
     especie: "",
     sexo: "",
     status_animal_id: "",
+    dataInicio: "",
+    dataFim: "",
   });
   const [numAnimaisEncontrados, setNumAnimaisEncontrados] = useState(0);
   const [showConfirmAlert, setShowConfirmAlert] = useState(false);
@@ -115,6 +117,25 @@ const AnimalMain = () => {
     setShowConfirmAlert(true);
   };
 
+  const handleExportPDF = () => {
+    const { dataInicio, dataFim, sexo, especie, status_animal_id } = filtros;
+
+    if (!dataInicio || !dataFim) {
+      alert('Por favor, selecione a Data Inicial e a Data Final antes de exportar o PDF.');
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.append('dataInicio', dataInicio);
+    params.append('dataFim', dataFim);
+    if (sexo) params.append('sexo', sexo);
+    if (especie) params.append('especie_id', especie);
+    if (status_animal_id) params.append('status_animal_id', status_animal_id);
+
+    const pdfUrl = `http://localhost:3001/animal/relatorio/pdf?${params.toString()}`;
+    window.open(pdfUrl, '_blank');
+  };
+
   return (
     <>
       <CRow className="mt-3 align-items-center">
@@ -128,7 +149,35 @@ const AnimalMain = () => {
         </CCol>
       </CRow>
 
+      <CRow className="mb-3">
+        <CCol lg="2">
+          <CFormInput
+            type="date"
+            name="dataInicio"
+            value={filtros.dataInicio}
+            onChange={handleFilterChange}
+            label="Data Início"
+          />
+        </CCol>
+        <CCol lg="2">
+          <CFormInput
+            type="date"
+            name="dataFim"
+            value={filtros.dataFim}
+            onChange={handleFilterChange}
+            label="Data Fim"
+          />
+        </CCol>
+        <CCol className="d-flex align-items-end">
+          <CButton color="secondary" onClick={handleExportPDF}>
+            Exportar PDF
+          </CButton>
+        </CCol>
+      </CRow>
+
       <CRow className="mt-2">
+        <hr></hr>
+        <h6>Filtrar por</h6>
         <CCol lg="2">
           <CFormInput
             type="text"
@@ -239,9 +288,6 @@ const AnimalMain = () => {
                             </CDropdownItem>
                             <CDropdownItem href={`#/admin/animal/${animal.id}/prontuario/`}>
                               Prontuário
-                            </CDropdownItem>
-                            <CDropdownItem href={`#/admin/animal/cuidado/${animal.id}`}>
-                              Registrar cuidado
                             </CDropdownItem>
                             <CDropdownItem onClick={() => confirmDelete(animal.id)}>
                               Excluir

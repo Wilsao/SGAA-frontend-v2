@@ -13,3 +13,25 @@
 
 // If you want to add custom CSS you can put it here
 @import "custom";
+
+.fab-help {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background-color: #212631; // cor de fundo, pode ajustar conforme o tema
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; // alto para ficar acima dos demais elementos
+
+  &:hover {
+    background-color: #323a49;
+  }
+}

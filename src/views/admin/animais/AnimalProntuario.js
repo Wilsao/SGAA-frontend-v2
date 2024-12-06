@@ -12,6 +12,7 @@ import {
   CButton,
   CForm,
   CFormTextarea,
+  CFormInput,
   CInputGroup,
   CInputGroupText,
   CModal,
@@ -19,6 +20,10 @@ import {
   CModalTitle,
   CModalBody,
   CModalFooter,
+  CCarousel,
+  CCarouselItem,
+  CCarouselCaption,
+
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilSave, cilTrash, cilPen, cilCheckCircle } from '@coreui/icons';
@@ -29,7 +34,11 @@ function AnimalProntuario() {
   const [animal, setAnimal] = useState(null);
   const [observacoes, setObservacoes] = useState([]);
   const [editandoObservacoes, setEditandoObservacoes] = useState({});
-  const [novaObservacao, setNovaObservacao] = useState('');
+  const [imagens, setImagens] = useState([]);
+
+  const [novoObservacaoTitulo, setNovoObservacaoTitulo] = useState('');
+  const [novoObservacaoDescricao, setNovoObservacaoDescricao] = useState('');
+
   const [showModal, setShowModal] = useState(false);
   const [observacaoIdToDelete, setObservacaoIdToDelete] = useState(null);
 
@@ -46,16 +55,52 @@ function AnimalProntuario() {
     }
   };
 
+  useEffect(() => {
+    const fetchAnimal = async () => {
+      try {
+        const response = await authFetch(`http://localhost:3001/animal/${id}`, {
+          method: 'GET',
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar animal');
+        }
+
+        const data = await response.json();
+
+        const imagesResponse = await authFetch(`http://localhost:3001/animal/imagens/${id}`, {
+          method: 'GET',
+        });
+
+        if (imagesResponse.ok) {
+          const imagesData = await imagesResponse.json();
+          setImagens(imagesData);
+        }
+
+        setAnimal(data);
+      } catch (error) {
+        console.error('Erro ao buscar animal:', error);
+      }
+    };
+
+    fetchAnimal();
+  }, [id]);
+
   const fetchObservacoes = async () => {
     try {
-      const response = await authFetch(`http://localhost:3001/animal/${id}/observacoes`);
+      const response = await authFetch(`http://localhost:3001/animal/observacao/${id}`);
       if (!response.ok) {
-        throw new Error('Erro ao buscar observações');
+        // Caso não encontre, pode retornar 404. Nesse caso, nenhuma observação.
+        setObservacoes([]);
+        return;
       }
       const data = await response.json();
+      // Ordenar em ordem decrescente por createdAt
+      data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setObservacoes(data);
     } catch (error) {
       console.error('Erro ao buscar observações:', error);
+      setObservacoes([]);
     }
   };
 
@@ -64,24 +109,43 @@ function AnimalProntuario() {
     fetchObservacoes();
   }, [id]);
 
-  const handleTextareaChange = (e, observacaoId) => {
-    const { value } = e.target;
+  const handleFieldChange = (observacaoId, field, value) => {
     setEditandoObservacoes((prevState) => ({
       ...prevState,
-      [observacaoId]: value,
+      [observacaoId]: {
+        ...prevState[observacaoId],
+        [field]: value,
+      },
     }));
+  };
+
+  const handleEdit = (observacaoId) => {
+    const obs = observacoes.find((o) => o.id === observacaoId);
+    if (obs) {
+      setEditandoObservacoes((prevState) => ({
+        ...prevState,
+        [observacaoId]: {
+          titulo: obs.titulo,
+          descricao: obs.descricao,
+        },
+      }));
+    }
   };
 
   const handleSave = async () => {
     try {
-      if (novaObservacao.trim()) {
-        const response = await authFetch(`http://localhost:3001/animal/${id}/observacoes`, {
+      // Criar nova observação
+      if (novoObservacaoTitulo.trim() && novoObservacaoDescricao.trim()) {
+        const response = await authFetch('http://localhost:3001/animal/observacao', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            descricao: novaObservacao,
+            animal_id: id,
+            titulo: novoObservacaoTitulo,
+            descricao: novoObservacaoDescricao,
+            status: 'concluido', // sempre concluido
           }),
         });
 
@@ -90,22 +154,30 @@ function AnimalProntuario() {
         }
 
         const newObservacao = await response.json();
-        setObservacoes((prevObservacoes) => [newObservacao, ...prevObservacoes]);
-        setNovaObservacao('');
+        setObservacoes((prev) => {
+          const updated = [newObservacao, ...prev];
+          updated.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          return updated;
+        });
+        setNovoObservacaoTitulo('');
+        setNovoObservacaoDescricao('');
       }
 
+      // Atualização de observações existentes
       const observacoesAtualizadas = [...observacoes];
-      for (const observacao of observacoesAtualizadas) {
-        if (editandoObservacoes[observacao.id] !== undefined) {
-          const updatedText = editandoObservacoes[observacao.id];
+      for (const obs of observacoesAtualizadas) {
+        if (editandoObservacoes[obs.id]) {
+          const { titulo, descricao } = editandoObservacoes[obs.id];
 
-          const response = await authFetch(`http://localhost:3001/observacoes/${observacao.id}`, {
+          const response = await authFetch(`http://localhost:3001/animal/observacao/${obs.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              descricao: updatedText,
+              titulo,
+              descricao,
+              status: 'concluido', // sempre concluido ao editar
             }),
           });
 
@@ -113,15 +185,16 @@ function AnimalProntuario() {
             throw new Error('Erro ao atualizar observação');
           }
 
-          const updatedObservacao = await response.json();
-
-          const index = observacoesAtualizadas.findIndex((obs) => obs.id === updatedObservacao.id);
+          const index = observacoesAtualizadas.findIndex((o) => o.id === obs.id);
           if (index !== -1) {
-            observacoesAtualizadas[index] = updatedObservacao;
+            observacoesAtualizadas[index].titulo = titulo;
+            observacoesAtualizadas[index].descricao = descricao;
+            observacoesAtualizadas[index].status = 'concluido';
           }
         }
       }
 
+      observacoesAtualizadas.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setObservacoes(observacoesAtualizadas);
       setEditandoObservacoes({});
     } catch (error) {
@@ -129,9 +202,9 @@ function AnimalProntuario() {
     }
   };
 
-  const handleDelete = async (observacaoId) => {
+  const handleDelete = async (obsId) => {
     try {
-      const response = await authFetch(`http://localhost:3001/observacoes/${observacaoId}`, {
+      const response = await authFetch(`http://localhost:3001/animal/observacao/${obsId}`, {
         method: 'DELETE',
       });
 
@@ -139,16 +212,20 @@ function AnimalProntuario() {
         throw new Error('Erro ao excluir observação');
       }
 
-      setObservacoes((prevState) => prevState.filter((obs) => obs.id !== observacaoId));
+      setObservacoes((prevState) => {
+        const updated = prevState.filter((o) => o.id !== obsId);
+        updated.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return updated;
+      });
       setShowModal(false);
     } catch (error) {
       console.error('Erro ao excluir observação:', error);
     }
   };
 
-  const handleShowModal = (observacaoId) => {
+  const handleShowModal = (obsId) => {
     setShowModal(true);
-    setObservacaoIdToDelete(observacaoId);
+    setObservacaoIdToDelete(obsId);
   };
 
   const handleCloseModal = () => {
@@ -156,28 +233,32 @@ function AnimalProntuario() {
     setObservacaoIdToDelete(null);
   };
 
-  const handleEdit = (observacaoId) => {
-    setEditandoObservacoes((prevState) => ({
-      ...prevState,
-      [observacaoId]: observacoes.find((obs) => obs.id === observacaoId).descricao,
-    }));
-  };
-
   return (
-    <CContainer className="mt-4">
+
+    <CContainer >
+      <CRow className="mt-3 align-items-center">
+        <CCol>
+          <h2>Prontuário</h2>
+        </CCol>
+      </CRow>
       {animal && (
         <CCard className="mb-4 shadow-sm border-light">
           <CCardBody>
             <CRow>
               <CCol md={3}>
-                {animal.foto_url && (
-                  <CCardImage
-                    orientation="top"
-                    src={`http://localhost:3001${animal.foto_url}`}
-                    className="img-fluid rounded"
-                    alt="Foto do animal"
-                  />
-                )}
+              {imagens.length > 0 ? (
+              <CCarousel>
+                {imagens.map((imagem, index) => (
+                  <CCarouselItem key={index}>
+                    <img
+                      className="d-block w-100"
+                      src={`http://localhost:3001${imagem.url}`}
+                      alt={`Imagem ${index + 1}`}
+                    />
+                  </CCarouselItem>
+                ))}
+              </CCarousel>
+            ) : null}
               </CCol>
               <CCol md={9}>
                 <h5>{animal.nome}</h5>
@@ -201,10 +282,17 @@ function AnimalProntuario() {
           <h5>Histórico de Observações</h5>
           <CForm className="mb-3">
             <CInputGroup className="mb-3">
-              <CInputGroupText>Nova Observação</CInputGroupText>
+              <CInputGroupText>Título</CInputGroupText>
+              <CFormInput
+                value={novoObservacaoTitulo}
+                onChange={(e) => setNovoObservacaoTitulo(e.target.value)}
+              />
+            </CInputGroup>
+            <CInputGroup className="mb-3">
+              <CInputGroupText>Descrição</CInputGroupText>
               <CFormTextarea
-                value={novaObservacao}
-                onChange={(e) => setNovaObservacao(e.target.value)}
+                value={novoObservacaoDescricao}
+                onChange={(e) => setNovoObservacaoDescricao(e.target.value)}
                 rows="3"
               />
             </CInputGroup>
@@ -213,54 +301,60 @@ function AnimalProntuario() {
             </CButton>
           </CForm>
 
-          {observacoes.map((observacao) => (
-            <CRow key={observacao.id} className="mb-3 align-items-center">
-              <CCol md={10}>
-                <CInputGroup>
-                  <CInputGroupText>Observação {observacao.id}</CInputGroupText>
-                  <CFormTextarea
-                    value={
-                      editandoObservacoes[observacao.id] !== undefined
-                        ? editandoObservacoes[observacao.id]
-                        : observacao.descricao
-                    }
-                    onChange={(e) => handleTextareaChange(e, observacao.id)}
-                    rows="3"
-                    disabled={editandoObservacoes[observacao.id] === undefined}
-                  />
-                </CInputGroup>
-                <small className="text-muted">
-                  {observacao.usuario
-                    ? `Criado por ${observacao.usuario.nome} em ${new Date(
-                        observacao.createdAt
-                      ).toLocaleDateString('pt-BR')}`
-                    : ''}
-                </small>
-              </CCol>
-              <CCol md={2} className="text-end">
-                {editandoObservacoes[observacao.id] === undefined ? (
+          {observacoes.map((obs) => {
+            const editando = editandoObservacoes[obs.id] !== undefined;
+            const tituloEdit = editando ? editandoObservacoes[obs.id].titulo : obs.titulo;
+            const descricaoEdit = editando ? editandoObservacoes[obs.id].descricao : obs.descricao;
+
+            return (
+              <CRow key={obs.id} className="mb-3 align-items-center">
+                <CCol md={10}>
+                  <CInputGroup className="mb-2">
+                    <CInputGroupText>Título</CInputGroupText>
+                    <CFormInput
+                      value={tituloEdit}
+                      onChange={(e) => handleFieldChange(obs.id, 'titulo', e.target.value)}
+                      disabled={!editando}
+                    />
+                  </CInputGroup>
+                  <CInputGroup>
+                    <CInputGroupText>Descrição</CInputGroupText>
+                    <CFormTextarea
+                      value={descricaoEdit}
+                      onChange={(e) => handleFieldChange(obs.id, 'descricao', e.target.value)}
+                      rows="3"
+                      disabled={!editando}
+                    />
+                  </CInputGroup>
+                  <small className="text-muted">
+                    Criado em {new Date(obs.createdAt).toLocaleDateString('pt-BR')}
+                  </small>
+                </CCol>
+                <CCol md={2} className="text-end">
+                  {!editando ? (
+                    <CButton
+                      color="info"
+                      onClick={() => handleEdit(obs.id)}
+                      className="me-2 mt-2"
+                    >
+                      Editar <CIcon icon={cilPen} />
+                    </CButton>
+                  ) : (
+                    <CButton color="success" onClick={handleSave} className="me-2 mt-2">
+                      Salvar <CIcon icon={cilCheckCircle} />
+                    </CButton>
+                  )}
                   <CButton
-                    color="info"
-                    onClick={() => handleEdit(observacao.id)}
-                    className="me-2"
+                    color="danger"
+                    onClick={() => handleShowModal(obs.id)}
+                    className="mt-2"
                   >
-                    Editar <CIcon icon={cilPen} />
+                    Excluir <CIcon icon={cilTrash} />
                   </CButton>
-                ) : (
-                  <CButton color="success" onClick={handleSave} className="me-2">
-                    Salvar <CIcon icon={cilCheckCircle} />
-                  </CButton>
-                )}
-                <CButton
-                  color="danger"
-                  onClick={() => handleShowModal(observacao.id)}
-                  className="me-2"
-                >
-                  Excluir <CIcon icon={cilTrash} />
-                </CButton>
-              </CCol>
-            </CRow>
-          ))}
+                </CCol>
+              </CRow>
+            );
+          })}
         </CCardBody>
       </CCard>
 

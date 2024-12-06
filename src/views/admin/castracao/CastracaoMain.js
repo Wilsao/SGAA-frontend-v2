@@ -20,11 +20,10 @@ import {
   CForm,
   CFormLabel,
   CFormInput,
-  CFormSelect,
 } from '@coreui/react';
 import { Link } from 'react-router-dom';
 import CIcon from '@coreui/icons-react';
-import { cilPencil, cilTrash, cilBan } from '@coreui/icons';
+import { cilPencil, cilBan } from '@coreui/icons';
 
 import authFetch from '../../../utils/authFetch';
 
@@ -35,9 +34,8 @@ function CastracaoMain() {
   const [filtros, setFiltros] = useState({
     dataInicial: '',
     dataFinal: '',
-    tipo_animal: '',
-    sexo_animal: '',
   });
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const fetchEventos = async () => {
@@ -55,6 +53,7 @@ function CastracaoMain() {
         setEventos(data);
       } catch (error) {
         console.error('Erro ao buscar eventos de castração:', error);
+        setErrorMessage('Erro ao buscar eventos de castração.');
       }
     };
     fetchEventos();
@@ -72,6 +71,7 @@ function CastracaoMain() {
       setShowModal(false);
     } catch (error) {
       console.error('Erro ao remover evento de castração:', error);
+      setErrorMessage('Erro ao remover evento de castração.');
     }
   };
 
@@ -94,9 +94,7 @@ function CastracaoMain() {
     return listaEventos.filter(
       (evento) =>
         (filtros.dataInicial === '' || evento.data_evento >= filtros.dataInicial) &&
-        (filtros.dataFinal === '' || evento.data_evento <= filtros.dataFinal) &&
-        (filtros.tipo_animal === '' || evento.tipo_animal.toLowerCase().includes(filtros.tipo_animal.toLowerCase())) &&
-        (filtros.sexo_animal === '' || evento.sexo_animal.toLowerCase().includes(filtros.sexo_animal.toLowerCase()))
+        (filtros.dataFinal === '' || evento.data_evento <= filtros.dataFinal)
     );
   };
 
@@ -117,6 +115,18 @@ function CastracaoMain() {
   const quantidadeEventos = Object.keys(eventosPorData).length;
   const totalCastracoes = eventosFiltrados.length;
 
+  const handleExportPDF = () => {
+    const { dataInicial, dataFinal } = filtros;
+
+    if (!dataInicial || !dataFinal) {
+      alert('Por favor, selecione a Data Inicial e a Data Final antes de exportar o PDF.');
+      return;
+    }
+
+    const pdfUrl = `http://localhost:3001/castracao/relatorio/pdf?dataInicio=${dataInicial}&dataFim=${dataFinal}`;
+    window.open(pdfUrl, '_blank');
+  };
+
   return (
     <>
       <CContainer className="mt-3">
@@ -125,7 +135,7 @@ function CastracaoMain() {
             <h2>Eventos de Castração</h2>
           </CCol>
           <CCol className="text-end">
-            <CButton color="success" href="#/admin/castracao/novo" component={Link}>
+            <CButton color="success" to="/admin/castracao/novo" component={Link}>
               Cadastrar evento +
             </CButton>
           </CCol>
@@ -134,7 +144,7 @@ function CastracaoMain() {
           <CCol>
             <CForm>
               <CRow className="align-items-end">
-                <CCol>
+                <CCol md={3}>
                   <CFormLabel>Data Inicial</CFormLabel>
                   <CFormInput
                     type="date"
@@ -143,7 +153,7 @@ function CastracaoMain() {
                     onChange={handleFilterChange}
                   />
                 </CCol>
-                <CCol>
+                <CCol md={3}>
                   <CFormLabel>Data Final</CFormLabel>
                   <CFormInput
                     type="date"
@@ -152,32 +162,24 @@ function CastracaoMain() {
                     onChange={handleFilterChange}
                   />
                 </CCol>
-                <CCol>
-                  <CFormSelect
-                    name="tipo_animal"
-                    value={filtros.tipo_animal}
-                    onChange={handleFilterChange}
-                  >
-                    <option value="">Tipo de Animal</option>
-                    <option value="Cachorro">Cachorro</option>
-                    <option value="Gato">Gato</option>
-                  </CFormSelect>
-                </CCol>
-                <CCol>
-                  <CFormSelect
-                    name="sexo_animal"
-                    value={filtros.sexo_animal}
-                    onChange={handleFilterChange}
-                  >
-                    <option value="">Sexo do Animal</option>
-                    <option value="Macho">Macho</option>
-                    <option value="Fêmea">Fêmea</option>
-                  </CFormSelect>
+                <CCol md={3}>
+                  <CButton color="secondary" onClick={handleExportPDF} className="mt-3">
+                    Exportar PDF
+                  </CButton>
                 </CCol>
               </CRow>
             </CForm>
           </CCol>
         </CRow>
+
+        {errorMessage && (
+          <CRow className="mt-3">
+            <CCol>
+              <div className="alert alert-danger">{errorMessage}</div>
+            </CCol>
+          </CRow>
+        )}
+
         <CRow className="mt-3">
           <CCol>
             <p className="mb-0">Dias de castração encontrados: {quantidadeEventos}</p>
@@ -185,7 +187,6 @@ function CastracaoMain() {
           <CCol>
             <p className="mb-0">Total de Castrações: {totalCastracoes}</p>
           </CCol>
-          <CCol></CCol><CCol></CCol>
         </CRow>
       </CContainer>
 
@@ -199,12 +200,10 @@ function CastracaoMain() {
                     {data} - Total de Castrações: {eventosPorData[data].length}
                   </CAccordionHeader>
                   <CAccordionBody>
-                    <CTable hover>
+                    <CTable hover responsive>
                       <thead>
                         <tr>
                           <th>ID</th>
-                          <th>Tipo de Animal</th>
-                          <th>Sexo do Animal</th>
                           <th>Local do Evento</th>
                           <th>Descrição</th>
                           <th>Ações</th>
@@ -214,12 +213,15 @@ function CastracaoMain() {
                         {eventosPorData[data].map((evento) => (
                           <tr key={evento.id}>
                             <td>{evento.id}</td>
-                            <td>{evento.tipo_animal}</td>
-                            <td>{evento.sexo_animal}</td>
                             <td>{evento.local_evento}</td>
                             <td>{evento.descricao}</td>
                             <td className="d-flex align-items-center">
-                              <CButton color="primary" href={`/#/admin/castracao/editar/${evento.id}`} component={Link} className="m-1">
+                              <CButton
+                                color="primary"
+                                to={`/admin/castracao/editar/${evento.id}`}
+                                component={Link}
+                                className="m-1"
+                              >
                                 Editar <CIcon icon={cilPencil} />
                               </CButton>
                               <CButton color="danger" onClick={() => handleShowModal(evento.id)} className="m-1">

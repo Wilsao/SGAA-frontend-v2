@@ -96,13 +96,12 @@ function AnimaisView() {
   }
 
   return (
-    <CContainer className="mt-4">
-      <CRow>
+    <CContainer className="mt-4 mb-5">
+      <CRow className="mb-3">
         <CCol>
           <CButton color="primary" onClick={() => navigate('/home')}>
             <CIcon icon={cilArrowLeft} /> Voltar
           </CButton>
-          {/* Botão Editar para Administradores */}
           {isAuthenticated && (
             <CButton
               color="warning"
@@ -115,7 +114,7 @@ function AnimaisView() {
         </CCol>
       </CRow>
 
-      <CRow className="justify-content-center mt-3">
+      <CRow className="justify-content-center">
         <CCol md={8}>
           <CCard className="mb-4 shadow-sm border-light">
             {imagens.length > 0 ? (
@@ -133,24 +132,24 @@ function AnimaisView() {
                   </CCarouselItem>
                 ))}
               </CCarousel>
-            ) : (<></>)}
+            ) : null}
             <CCardBody>
-              <CRow>
-                <CCol md={12} className="text-center mb-3">
-                  <CCardTitle className="h2">{animal.nome}</CCardTitle>
+              <CRow className="mb-3">
+                <CCol md={12} className="text-center">
+                  <CCardTitle className="h2 mb-3">{animal.nome}</CCardTitle>
                   <CBadge
                     color={
-                      animal.status_animal && animal.status_animal.nome === 'Disponível'
+                      animal.statusAnimal && animal.statusAnimal.nome === 'Disponível'
                         ? 'success'
                         : 'secondary'
                     }
                   >
-                    {animal.status_animal ? animal.status_animal.nome : 'Status Desconhecido'}
+                    {animal.statusAnimal ? animal.statusAnimal.nome : 'Status Desconhecido'}
                   </CBadge>
                 </CCol>
               </CRow>
 
-              <CListGroup flush>
+              <CListGroup flush className="mb-3">
                 <CListGroupItem>
                   <strong>Espécie:</strong> {animal.especie ? animal.especie.nome : 'Não Informado'}
                 </CListGroupItem>
@@ -158,7 +157,7 @@ function AnimaisView() {
                   <strong>Sexo:</strong> {animal.sexo === 'M' ? 'Macho' : 'Fêmea'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Cor/Pelagem:</strong> {animal.cor_pelagem}
+                  <strong>Cor/Pelagem:</strong> {animal.cor_pelagem || 'Não Informada'}
                 </CListGroupItem>
                 <CListGroupItem>
                   <strong>Deficiência:</strong> {animal.deficiencia || 'Nenhuma'}
@@ -208,8 +207,7 @@ function AnimaisView() {
                 </CListGroupItem>
               </CListGroup>
 
-              {/* Botão Quero Adotar */}
-              {animal.status_animal && animal.status_animal.nome === 'Disponível' && (
+              {animal.statusAnimal && animal.statusAnimal.nome === 'Disponível' && (
                 <CRow className="mt-4">
                   <CCol className="text-center">
                     <CButton color="success" onClick={() => openWhatsApp(animal.nome)}>

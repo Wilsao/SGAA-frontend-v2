@@ -105,6 +105,18 @@ function ArrecadacaoMain() {
   const quantidadeEventos = eventosFiltrados.length;
   const valorTotalArrecadado = eventosFiltrados.reduce((total, evento) => total + parseFloat(evento.valor_arrecadado), 0);
 
+  const handleExportPDF = () => {
+    const { dataInicial, dataFinal } = filtros;
+
+    if (!dataInicial || !dataFinal) {
+      alert('Por favor, selecione a Data Inicial e a Data Final antes de exportar o PDF.');
+      return;
+    }
+
+    const pdfUrl = `http://localhost:3001/arrecadacao/relatorio/pdf?dataInicio=${dataInicial}&dataFim=${dataFinal}`;
+    window.open(pdfUrl, '_blank');
+  };
+
   return (
     <>
       <CContainer className="mt-3">
@@ -120,7 +132,7 @@ function ArrecadacaoMain() {
         </CRow>
 
         {/* Filtros */}
-        <CRow className="mt-4">
+        <CRow className="mt-2">
           <CCol>
             <CForm>
               <CRow className="align-items-end">
@@ -142,7 +154,7 @@ function ArrecadacaoMain() {
                     onChange={handleFilterChange}
                   />
                 </CCol>
-                <CCol md={6}>
+                <CCol md={4}>
                   <CFormLabel>Descrição</CFormLabel>
                   <CFormInput
                     type="text"
@@ -151,6 +163,11 @@ function ArrecadacaoMain() {
                     onChange={handleFilterChange}
                     placeholder="Buscar por descrição"
                   />
+                </CCol>
+                <CCol md={2} className="text-end">
+                  <CButton color="secondary" onClick={handleExportPDF}>
+                    Exportar PDF
+                  </CButton>
                 </CCol>
               </CRow>
             </CForm>
