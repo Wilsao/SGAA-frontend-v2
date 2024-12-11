@@ -1,6 +1,7 @@
 // src/views/admin/users/UsuarioForm.js
 
 import React, { useState, useEffect } from 'react';
+
 import {
   CContainer,
   CRow,
@@ -26,6 +27,7 @@ function UsuarioForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const userRole = useSelector((state) => state.auth.userRole) || '3';
+  const userId = useSelector((state) => state.auth.userId);
   const loggedInUser = useSelector((state) => state.auth.user);
   const loggedInUserTipoUsuarioId = loggedInUser?.tipo_usuario_id;
 
@@ -44,6 +46,10 @@ function UsuarioForm() {
   const [successMessage, setSuccessMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showResposta, setShowResposta] = useState(false);
+
+  if(userRole != 1 && userId != id){
+    navigate('/home');
+  }
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -147,8 +153,8 @@ function UsuarioForm() {
 
   return (
     <CContainer className="mt-3">
-      <CRow className="justify-content-center">
-        <CCol md={8}>
+      <CRow className="">
+        <CCol md={12}>
           <CCard>
             <CCardBody>
               <h2>{id ? 'Editar Informações' : 'Cadastrar Usuário'}</h2>

@@ -38,11 +38,11 @@ const App = () => {
         }
       >
         <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/registro" element={<PessoaForm />} />
-        <Route path="/esqueci-a-senha" element={<EsqueciSenha />} />
-        <Route path="/definir-pergunta-de-seguranca" element={<PerguntaDeSeguranca />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
+        {/* <Route path="/login" element={<Login />} /> */}
+        {/* <Route path="/registro" element={<PessoaForm />} /> */}
+        {/* <Route path="/esqueci-a-senha" element={<EsqueciSenha />} /> */}
+        {/* <Route path="/definir-pergunta-de-seguranca" element={<PerguntaDeSeguranca />} /> */}
+        {/* <Route path="/unauthorized" element={<Unauthorized />} /> */}
           {routes.map((route, idx) => {
             if (route.children) {
               return (

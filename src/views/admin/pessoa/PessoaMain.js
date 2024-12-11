@@ -18,7 +18,9 @@ import {
   CAlert,
 } from '@coreui/react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import CIcon from '@coreui/icons-react';
+import { cilPencil, cilTrash, cilLockLocked, cilLockUnlocked } from '@coreui/icons';
 
 const PessoaMain = () => {
   const [pessoas, setPessoas] = useState([]);
@@ -26,12 +28,10 @@ const PessoaMain = () => {
   const [erro, setErro] = useState(null);
 
   const token = useSelector((state) => state.auth.token);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPessoas = async () => {
       try {
-        // Obtém todas as pessoas com endereços e contatos
         const response = await fetch('http://localhost:3001/pessoa/', {
           headers: {
             'Content-Type': 'application/json',
@@ -41,7 +41,6 @@ const PessoaMain = () => {
         if (response.ok) {
           const data = await response.json();
 
-          // Para cada pessoa, obtém seus endereços e contatos
           const pessoasComDetalhes = await Promise.all(
             data.map(async (pessoa) => {
               const [enderecoResponse, contatoResponse] = await Promise.all([
@@ -92,7 +91,7 @@ const PessoaMain = () => {
 
   if (loading) {
     return (
-      <div className="text-center">
+      <div className="text-center mt-4">
         <CSpinner color="primary" />
       </div>
     );
@@ -103,24 +102,22 @@ const PessoaMain = () => {
   }
 
   return (
-    <CContainer>
-      <CRow className="mt-4">
+    <CContainer className="mt-3">
+      <CRow className="mb-3">
         <CCol>
-          <CCard>
-            <CCardHeader>
-              <CRow>
-                <CCol>
-                  <strong>Lista de Pessoas</strong>
-                </CCol>
-                <CCol className="text-right">
-                  <CButton color="primary" href={'#/registro'}>
-                    Nova Pessoa
-                  </CButton>
-                </CCol>
-              </CRow>
-            </CCardHeader>
+          <h2>Lista de Pessoas</h2>
+        </CCol>
+        <CCol className="text-end">
+          <CButton color="success" href="#/registro">
+            Cadastrar Pessoa +
+          </CButton>
+        </CCol>
+      </CRow>
+      <CRow>
+        <CCol>
+          <CCard className="mb-4">
             <CCardBody>
-              <CTable striped hover responsive>
+              <CTable hover responsive>
                 <CTableHead>
                   <CTableRow>
                     <CTableHeaderCell>Nome</CTableHeaderCell>
@@ -149,12 +146,12 @@ const PessoaMain = () => {
                       </CTableDataCell>
                       <CTableDataCell>
                         <CButton
-                          color="info"
-                          variant="outline"
-                          size="sm"
-                          href={`#/admin/pessoa/editar/${pessoa.id}`}
+                          color="primary"
+                          href={`/#/admin/pessoa/editar/${pessoa.id}`}
+                          component={Link}
+                          className="me-2"
                         >
-                          Editar
+                          <CIcon icon={cilPencil} /> Ver/Editar
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>

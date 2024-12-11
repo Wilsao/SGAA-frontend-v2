@@ -96,8 +96,8 @@ const EsqueciSenha = () => {
   };
 
   return (
-    <CContainer className="min-vh-100 d-flex flex-column justify-content-center align-items-center">
-      <CRow className="justify-content-center">
+    <CContainer className="">
+      <CRow className="">
         <CCol>
           <CCard className="p-4">
             <CCardBody>

@@ -1,5 +1,4 @@
 // src/views/pessoas/PessoaForm.js
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -17,8 +16,35 @@ import {
   CFormSelect,
   CRow,
   CAlert,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
 } from '@coreui/react';
 import { useSelector } from 'react-redux';
+import InputMask from 'react-input-mask';
+
+const validarCPF = (cpf) => {
+  const cleanCPF = cpf.replace(/\D/g, '');
+  if (cleanCPF.length !== 11) return false;
+
+  let sum = 0;
+  let rest;
+
+  for (let i = 1; i <= 9; i++) sum += parseInt(cleanCPF.substring(i-1, i))*(11 - i);
+  rest = (sum * 10) % 11;
+  if ((rest === 10) || (rest === 11)) rest = 0;
+  if (rest !== parseInt(cleanCPF.substring(9, 10))) return false;
+
+  sum = 0;
+  for (let i = 1; i <= 10; i++) sum += parseInt(cleanCPF.substring(i-1, i))*(12 - i);
+  rest = (sum * 10) % 11;
+  if ((rest === 10) || (rest === 11)) rest = 0;
+  if (rest !== parseInt(cleanCPF.substring(10, 11))) return false;
+
+  return true;
+};
 
 const PessoaForm = () => {
   const [nome, setNome] = useState('');
@@ -30,12 +56,19 @@ const PessoaForm = () => {
   const [contatos, setContatos] = useState([]);
   const [erro, setErro] = useState(null);
   const [sucesso, setSucesso] = useState(null);
-  const navigate = useNavigate();
-  const token = useSelector((state) => state.auth.token);
 
   const [userEmail, setUserEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [deleteType, setDeleteType] = useState(null);
+  const [deleteIndex, setDeleteIndex] = useState(null);
+  // Como é criação, não teremos IDs para deletar do backend ainda, então somente removemos do array
+  const [deleteId, setDeleteId] = useState(null);
+
+  const navigate = useNavigate();
+  const token = useSelector((state) => state.auth.token);
 
   const adicionarEndereco = () => {
     setEnderecos([
@@ -54,6 +87,13 @@ const PessoaForm = () => {
     ]);
   };
 
+  const confirmarRemocao = (tipo, index, elemId) => {
+    setDeleteType(tipo);
+    setDeleteIndex(index);
+    setDeleteId(elemId);
+    setShowConfirmModal(true);
+  };
+
   const removerEndereco = (index) => {
     const novosEnderecos = [...enderecos];
     novosEnderecos.splice(index, 1);
@@ -66,11 +106,31 @@ const PessoaForm = () => {
     setEnderecos(novosEnderecos);
   };
 
+  const handleCepBlur = async (index) => {
+    const cep = enderecos[index].cep.replace(/\D/g, '');
+    if (cep.length === 8) {
+      try {
+        const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (!data.erro) {
+            atualizarEndereco(index, 'estado', data.uf);
+            atualizarEndereco(index, 'cidade', data.localidade);
+            atualizarEndereco(index, 'bairro', data.bairro);
+            atualizarEndereco(index, 'rua', data.logradouro);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error);
+      }
+    }
+  };
+
   const adicionarContato = () => {
     setContatos([
       ...contatos,
       {
-        tipo: '',
+        tipo: 'telefone',
         valor: '',
         status: true,
       },
@@ -91,6 +151,14 @@ const PessoaForm = () => {
 
   const handleRegistro = async (e) => {
     e.preventDefault();
+    setErro(null);
+    setSucesso(null);
+
+    const cpfClean = cpf.replace(/\D/g, '');
+    if (!validarCPF(cpfClean)) {
+      setErro('CPF inválido.');
+      return;
+    }
 
     if (!nome || !cpf || !sexo || !dataNascimento || !userEmail || !senha || !confirmarSenha) {
       setErro('Por favor, preencha todos os campos obrigatórios.');
@@ -103,6 +171,15 @@ const PessoaForm = () => {
     }
 
     try {
+      // Processar contatos antes do envio
+      const contatosProcessados = contatos.map((contato) => {
+        let valorProcessado = contato.valor;
+        if (contato.tipo !== 'email') {
+          valorProcessado = valorProcessado.replace(/\D/g, '');
+        }
+        return { ...contato, valor: valorProcessado };
+      });
+
       const response = await fetch('http://localhost:3001/pessoa/', {
         method: 'POST',
         headers: {
@@ -111,13 +188,13 @@ const PessoaForm = () => {
         },
         body: JSON.stringify({
           nome,
-          cpf,
+          cpf: cpfClean,
           sexo,
           data_nascimento: dataNascimento,
           cuidador,
-          status: true, // Sempre ativo por padrão
+          status: true,
           enderecos,
-          contatos,
+          contatos: contatosProcessados,
           usuario: {
             nome: nome,
             email: userEmail,
@@ -140,17 +217,27 @@ const PessoaForm = () => {
     }
   };
 
+  const confirmarRemocaoElemento = () => {
+    setShowConfirmModal(false);
+    if (deleteType === 'endereco') {
+      removerEndereco(deleteIndex);
+    } else if (deleteType === 'contato') {
+      removerContato(deleteIndex);
+    }
+  };
+
   return (
     <CContainer>
-      <CRow className="justify-content-center">
-        <CCol md={10}>
-          <CCard className="mt-4">
-            <CCardHeader>
-              <h5>Cadastre-se para adotar um amigo peludo ou para oferecer um lar temporário cheio de carinho aos nossos bichinhos. 🐾❤️</h5>
-            </CCardHeader>
+      <CRow className="">
+        <CCol>
+          <h2>Cadastre-se para adotar um amigo peludo ou para oferecer um lar temporário cheio de carinho aos nossos bichinhos. 🐾❤️</h2>
+        </CCol>
+      </CRow>
+      <CRow className="">
+        <CCol md={12}>
+          <CCard className="mb-4">
             <CCardBody>
               <CForm onSubmit={handleRegistro}>
-                {/* Dados Pessoais */}
                 <h6>Dados Pessoais</h6>
                 <CRow>
                   <CCol md={6}>
@@ -164,12 +251,13 @@ const PessoaForm = () => {
                   </CCol>
                   <CCol md={3}>
                     <CFormLabel>CPF *</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      placeholder="Digite o CPF"
+                    <InputMask
+                      mask="999.999.999-99"
                       value={cpf}
                       onChange={(e) => setCpf(e.target.value)}
-                    />
+                    >
+                      {(inputProps) => <CFormInput {...inputProps} placeholder="Digite o CPF" />}
+                    </InputMask>
                   </CCol>
                   <CCol md={3}>
                     <CFormLabel>Sexo *</CFormLabel>
@@ -203,7 +291,7 @@ const PessoaForm = () => {
                 </CRow>
 
                 {/* Dados de Usuário */}
-                <CRow>
+                <CRow className="mt-3">
                   <CCol md={6}>
                     <CFormLabel>Email *</CFormLabel>
                     <CFormInput
@@ -241,22 +329,25 @@ const PessoaForm = () => {
                   <div key={index} className="border p-3 mb-3">
                     <CRow>
                       <CCol md={2}>
+                        <CFormLabel>CEP</CFormLabel>
+                        <InputMask
+                          mask="99999-999"
+                          value={endereco.cep}
+                          onBlur={() => handleCepBlur(index)}
+                          onChange={(e) =>
+                            atualizarEndereco(index, 'cep', e.target.value)
+                          }
+                        >
+                          {(inputProps) => <CFormInput {...inputProps} />}
+                        </InputMask>
+                      </CCol>
+                      <CCol md={2}>
                         <CFormLabel>Estado</CFormLabel>
                         <CFormInput
                           type="text"
                           value={endereco.estado}
                           onChange={(e) =>
                             atualizarEndereco(index, 'estado', e.target.value)
-                          }
-                        />
-                      </CCol>
-                      <CCol md={2}>
-                        <CFormLabel>CEP</CFormLabel>
-                        <CFormInput
-                          type="text"
-                          value={endereco.cep}
-                          onChange={(e) =>
-                            atualizarEndereco(index, 'cep', e.target.value)
                           }
                         />
                       </CCol>
@@ -282,7 +373,7 @@ const PessoaForm = () => {
                       </CCol>
                       <CCol md={2} className="mt-4">
                         <CFormCheck
-                          label="Disponível para lar temporário"
+                          label="Lar Temp."
                           checked={endereco.larTemporario}
                           onChange={(e) =>
                             atualizarEndereco(index, 'larTemporario', e.target.checked)
@@ -327,7 +418,7 @@ const PessoaForm = () => {
                       variant="outline"
                       size="sm"
                       className="mt-2"
-                      onClick={() => removerEndereco(index)}
+                      onClick={() => confirmarRemocao('endereco', index, null)}
                     >
                       Remover Endereço
                     </CButton>
@@ -356,21 +447,32 @@ const PessoaForm = () => {
                           }
                         >
                           <option value="">Selecione</option>
-                          <option value="Telefone">Telefone</option>
-                          <option value="Email">Email</option>
-                          <option value="WhatsApp">WhatsApp</option>
-                          {/* Outros tipos de contato */}
+                          <option value="telefone">Telefone</option>
+                          <option value="email">Email</option>
+                          <option value="whatsapp">WhatsApp</option>
                         </CFormSelect>
                       </CCol>
                       <CCol md={6}>
                         <CFormLabel>Valor</CFormLabel>
-                        <CFormInput
-                          type="text"
-                          value={contato.valor}
-                          onChange={(e) =>
-                            atualizarContato(index, 'valor', e.target.value)
-                          }
-                        />
+                        {contato.tipo === 'email' ? (
+                          <CFormInput
+                            type="email"
+                            value={contato.valor}
+                            onChange={(e) =>
+                              atualizarContato(index, 'valor', e.target.value)
+                            }
+                          />
+                        ) : (
+                          <InputMask
+                            mask="(99) 99999-9999"
+                            value={contato.valor}
+                            onChange={(e) =>
+                              atualizarContato(index, 'valor', e.target.value)
+                            }
+                          >
+                            {(inputProps) => <CFormInput {...inputProps} />}
+                          </InputMask>
+                        )}
                       </CCol>
                     </CRow>
                     <CButton
@@ -378,7 +480,7 @@ const PessoaForm = () => {
                       variant="outline"
                       size="sm"
                       className="mt-2"
-                      onClick={() => removerContato(index)}
+                      onClick={() => confirmarRemocao('contato', index, null)}
                     >
                       Remover Contato
                     </CButton>
@@ -394,23 +496,35 @@ const PessoaForm = () => {
                 </CButton>
                 {erro && <CAlert color="danger" className="mt-3">{erro}</CAlert>}
                 {sucesso && <CAlert color="success" className="mt-3">{sucesso}</CAlert>}
-                <CRow>
+                <CRow className="mt-4">
                   <CCol>
-                    <CButton color="success" type="submit" className="mt-4">
+                    <CButton color="success" type="submit" >
                       Salvar
                     </CButton>
                   </CCol>
                 </CRow>
               </CForm>
             </CCardBody>
-            <CCardFooter>
-              <CButton color="secondary" onClick={() => navigate('/home')}>
-                Voltar
-              </CButton>
-            </CCardFooter>
           </CCard>
         </CCol>
       </CRow>
+
+      <CModal visible={showConfirmModal} onClose={() => setShowConfirmModal(false)}>
+        <CModalHeader closeButton>
+          <CModalTitle>Confirmar Remoção</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          Tem certeza que deseja remover este {deleteType === 'endereco' ? 'endereço' : 'contato'}?
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setShowConfirmModal(false)}>
+            Cancelar
+          </CButton>
+          <CButton color="danger" onClick={confirmarRemocaoElemento}>
+            Remover
+          </CButton>
+        </CModalFooter>
+      </CModal>
     </CContainer>
   );
 };

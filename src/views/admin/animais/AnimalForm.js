@@ -310,9 +310,9 @@ const AnimalForm = () => {
   };
 
   return (
-    <CContainer className="mt-3">
+    <CContainer className="my-3">
       <CRow className="justify-content-center">
-        <CCol md="10">
+        <CCol md="12">
           <CCard>
             <CCardBody>
               <h2>{id ? "Editar Animal" : "Cadastrar Animal"}</h2>

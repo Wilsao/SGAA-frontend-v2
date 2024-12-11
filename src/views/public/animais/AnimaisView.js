@@ -46,7 +46,7 @@ function AnimaisView() {
         }
 
         const data = await response.json();
-
+        console.log(data)
         const imagesResponse = await authFetch(`http://localhost:3001/animal/imagens/${id}`, {
           method: 'GET',
         });
@@ -134,7 +134,7 @@ function AnimaisView() {
               <CRow className="mb-3">
                 <CCol md={12} className="text-center">
                   <CCardTitle className="h2 mb-3">{animal.nome}</CCardTitle>
-                  <CBadge
+                  {/* <CBadge
                     color={
                       animal.statusAnimal && animal.statusAnimal.nome === 'Disponível'
                         ? 'success'
@@ -142,7 +142,7 @@ function AnimaisView() {
                     }
                   >
                     {animal.statusAnimal ? animal.statusAnimal.nome : 'Status Desconhecido'}
-                  </CBadge>
+                  </CBadge> */}
                 </CCol>
               </CRow>
 
@@ -174,10 +174,10 @@ function AnimaisView() {
                 <CListGroupItem>
                   <strong>Castrado:</strong> {animal.castracao ? 'Sim' : 'Não'}
                 </CListGroupItem>
-                <CListGroupItem>
+                {/* <CListGroupItem>
                   <strong>Cuidador:</strong>{' '}
                   {animal.responsavel ? animal.responsavel.nome : 'Não Informado'}
-                </CListGroupItem>
+                </CListGroupItem> */}
                 {/* <CListGroupItem>
                   <strong>Contatos do Cuidador:</strong>{' '}
                   {animal.responsavel && animal.responsavel.contatos && animal.responsavel.contatos.length > 0

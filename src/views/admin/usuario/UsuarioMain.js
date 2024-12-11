@@ -64,7 +64,8 @@ function UsuarioMain() {
 
   const handleDelete = async (id) => {
     try {
-      const response = await authFetch(`http://localhost:3001/usuario/${id}`, { method: 'DELETE' });
+      const usuarioId = localStorage.getItem('userId');
+      const response = await authFetch(`http://localhost:3001/usuario/${id}/${usuarioId}`, { method: 'DELETE' });
       if (!response.ok) {
         throw new Error('Erro ao excluir usuário');
       }
@@ -72,7 +73,7 @@ function UsuarioMain() {
       setShowDeleteModal(false);
     } catch (error) {
       console.error('Erro ao excluir usuário:', error);
-      setErrorMessage('Erro ao excluir usuário.');
+      setErrorMessage('Erro ao excluir usuário pois existem registros criados por ele.');
     }
   };
 
@@ -128,6 +129,11 @@ function UsuarioMain() {
       <CRow className="mb-3">
         <CCol>
           <h2>Usuários</h2>
+        </CCol>
+        <CCol className="text-end">
+          <CButton color="success" href="#/registro">
+            Cadastrar Usuário +
+          </CButton>
         </CCol>
       </CRow>
       <CCard>

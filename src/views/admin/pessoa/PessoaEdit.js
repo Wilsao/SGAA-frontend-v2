@@ -16,8 +16,38 @@ import {
   CFormSelect,
   CRow,
   CAlert,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
 } from '@coreui/react';
 import { useSelector } from 'react-redux';
+import InputMask from 'react-input-mask';
+
+const validarCPF = (cpf) => {
+  // Remove caracteres não numéricos
+  const cleanCPF = cpf.replace(/\D/g, '');
+  if (cleanCPF.length !== 11) return false;
+
+  let sum = 0;
+  let rest;
+
+  // Primeiro dígito verificador
+  for (let i = 1; i <= 9; i++) sum += parseInt(cleanCPF.substring(i-1, i)) * (11 - i);
+  rest = (sum * 10) % 11;
+  if ((rest === 10) || (rest === 11)) rest = 0;
+  if (rest !== parseInt(cleanCPF.substring(9, 10))) return false;
+
+  // Segundo dígito verificador
+  sum = 0;
+  for (let i = 1; i <= 10; i++) sum += parseInt(cleanCPF.substring(i-1, i))*(12 - i);
+  rest = (sum * 10) % 11;
+  if ((rest === 10) || (rest === 11)) rest = 0;
+  if (rest !== parseInt(cleanCPF.substring(10, 11))) return false;
+
+  return true;
+};
 
 const PessoaEdit = () => {
   const { id } = useParams();
@@ -30,6 +60,11 @@ const PessoaEdit = () => {
   const [contatos, setContatos] = useState([]);
   const [erro, setErro] = useState(null);
   const [sucesso, setSucesso] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [deleteType, setDeleteType] = useState(null); // 'endereco' ou 'contato'
+  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+
   const navigate = useNavigate();
   const token = useSelector((state) => state.auth.token);
 
@@ -110,26 +145,27 @@ const PessoaEdit = () => {
     ]);
   };
 
+  const confirmarRemocao = (tipo, index, elemId) => {
+    setDeleteType(tipo);
+    setDeleteIndex(index);
+    setDeleteId(elemId);
+    setShowConfirmModal(true);
+  };
+
   const removerEndereco = async (index, enderecoId) => {
     if (enderecoId) {
-      try {
-        const response = await fetch(
-          `http://localhost:3001/pessoa/${id}/endereco/${enderecoId}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        if (!response.ok) {
-          setErro('Erro ao remover o endereço.');
-          return;
+      const response = await fetch(
+        `http://localhost:3001/pessoa/${id}/endereco/${enderecoId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
         }
-      } catch (error) {
-        console.error('Erro ao remover endereço:', error);
-        setErro('Erro ao conectar ao servidor.');
+      );
+      if (!response.ok) {
+        setErro('Erro ao remover o endereço.');
         return;
       }
     }
@@ -144,11 +180,31 @@ const PessoaEdit = () => {
     setEnderecos(novosEnderecos);
   };
 
+  const handleCepBlur = async (index) => {
+    const cep = enderecos[index].cep.replace(/\D/g, '');
+    if (cep.length === 8) {
+      try {
+        const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (!data.erro) {
+            atualizarEndereco(index, 'estado', data.uf);
+            atualizarEndereco(index, 'cidade', data.localidade);
+            atualizarEndereco(index, 'bairro', data.bairro);
+            atualizarEndereco(index, 'rua', data.logradouro);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error);
+      }
+    }
+  };
+
   const adicionarContato = () => {
     setContatos([
       ...contatos,
       {
-        tipo: '',
+        tipo: 'telefone',
         valor: '',
         status: true,
       },
@@ -157,24 +213,18 @@ const PessoaEdit = () => {
 
   const removerContato = async (index, contatoId) => {
     if (contatoId) {
-      try {
-        const response = await fetch(
-          `http://localhost:3001/pessoa/${id}/contato/${contatoId}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        if (!response.ok) {
-          setErro('Erro ao remover o contato.');
-          return;
+      const response = await fetch(
+        `http://localhost:3001/pessoa/${id}/contato/${contatoId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
         }
-      } catch (error) {
-        console.error('Erro ao remover contato:', error);
-        setErro('Erro ao conectar ao servidor.');
+      );
+      if (!response.ok) {
+        setErro('Erro ao remover o contato.');
         return;
       }
     }
@@ -191,6 +241,14 @@ const PessoaEdit = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setErro(null);
+    setSucesso(null);
+
+    const cpfClean = cpf.replace(/\D/g, '');
+    if (!validarCPF(cpfClean)) {
+      setErro('CPF inválido.');
+      return;
+    }
 
     if (!nome || !cpf || !sexo || !dataNascimento) {
       setErro('Por favor, preencha todos os campos obrigatórios.');
@@ -206,7 +264,7 @@ const PessoaEdit = () => {
         },
         body: JSON.stringify({
           nome,
-          cpf,
+          cpf: cpfClean,
           sexo,
           data_nascimento: dataNascimento,
           cuidador,
@@ -221,68 +279,81 @@ const PessoaEdit = () => {
       }
 
       for (const endereco of enderecos) {
-        if (endereco.id) {
-          await fetch(`http://localhost:3001/pessoa/${id}/endereco/${endereco.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(endereco),
-          });
-        } else {
-          await fetch(`http://localhost:3001/pessoa/${id}/endereco/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(endereco),
-          });
+        const url = endereco.id
+          ? `http://localhost:3001/pessoa/${id}/endereco/${endereco.id}`
+          : `http://localhost:3001/pessoa/${id}/endereco/`;
+        const method = endereco.id ? 'PUT' : 'POST';
+        const resp = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(endereco),
+        });
+        if (!resp.ok) {
+          const data = await resp.json();
+          setErro(data.error || 'Erro ao atualizar o endereço.');
+          return;
         }
       }
 
       for (const contato of contatos) {
-        if (contato.id) {
-          await fetch(`http://localhost:3001/pessoa/${id}/contato/${contato.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(contato),
-          });
-        } else {
-          await fetch(`http://localhost:3001/pessoa/${id}/contato/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(contato),
-          });
+        const url = contato.id
+          ? `http://localhost:3001/pessoa/${id}/contato/${contato.id}`
+          : `http://localhost:3001/pessoa/${id}/contato/`;
+        const method = contato.id ? 'PUT' : 'POST';
+        // Se o tipo for telefone/whatsapp, remover caracteres não numéricos
+        let valorContato = contato.valor;
+        if (contato.tipo !== 'email') {
+          valorContato = valorContato.replace(/\D/g, '');
+        }
+        const resp = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            tipo: contato.tipo,
+            valor: valorContato,
+            status: contato.status,
+          }),
+        });
+        if (!resp.ok) {
+          const data = await resp.json();
+          setErro(data.error || 'Erro ao atualizar/adicionar o contato.');
+          return;
         }
       }
 
       setSucesso('Pessoa atualizada com sucesso!');
-      setErro(null);
     } catch (error) {
       console.error('Erro na atualização:', error);
       setErro('Erro ao conectar ao servidor.');
     }
   };
 
+  const confirmarRemocaoElemento = async () => {
+    setShowConfirmModal(false);
+    if (deleteType === 'endereco') {
+      await removerEndereco(deleteIndex, deleteId);
+    } else if (deleteType === 'contato') {
+      await removerContato(deleteIndex, deleteId);
+    }
+  };
+
   return (
     <CContainer>
+      <CRow className="mb-3">
+        <CCol>
+          <h2>Editar Pessoa</h2>
+        </CCol>
+      </CRow>
       <CRow className="justify-content-center">
-        <CCol md={10}>
-          <CCard className="mt-4">
-            <CCardHeader>
-              <h5>Editar Pessoa</h5>
-            </CCardHeader>
+        <CCol md={12}>
+          <CCard className="mb-4">
             <CCardBody>
-              {erro && <CAlert color="danger">{erro}</CAlert>}
-              {sucesso && <CAlert color="success">{sucesso}</CAlert>}
               <CForm onSubmit={handleUpdate}>
                 {/* Dados Pessoais */}
                 <h6>Dados Pessoais</h6>
@@ -298,12 +369,13 @@ const PessoaEdit = () => {
                   </CCol>
                   <CCol md={3}>
                     <CFormLabel>CPF *</CFormLabel>
-                    <CFormInput
-                      type="text"
-                      placeholder="Digite o CPF"
+                    <InputMask
+                      mask="999.999.999-99"
                       value={cpf}
                       onChange={(e) => setCpf(e.target.value)}
-                    />
+                    >
+                      {(inputProps) => <CFormInput {...inputProps} placeholder="Digite o CPF" />}
+                    </InputMask>
                   </CCol>
                   <CCol md={3}>
                     <CFormLabel>Sexo *</CFormLabel>
@@ -342,22 +414,25 @@ const PessoaEdit = () => {
                   <div key={index} className="border p-3 mb-3">
                     <CRow>
                       <CCol md={2}>
+                        <CFormLabel>CEP</CFormLabel>
+                        <InputMask
+                          mask="99999-999"
+                          value={endereco.cep}
+                          onBlur={() => handleCepBlur(index)}
+                          onChange={(e) =>
+                            atualizarEndereco(index, 'cep', e.target.value)
+                          }
+                        >
+                          {(inputProps) => <CFormInput {...inputProps} />}
+                        </InputMask>
+                      </CCol>
+                      <CCol md={2}>
                         <CFormLabel>Estado</CFormLabel>
                         <CFormInput
                           type="text"
                           value={endereco.estado}
                           onChange={(e) =>
                             atualizarEndereco(index, 'estado', e.target.value)
-                          }
-                        />
-                      </CCol>
-                      <CCol md={2}>
-                        <CFormLabel>CEP</CFormLabel>
-                        <CFormInput
-                          type="text"
-                          value={endereco.cep}
-                          onChange={(e) =>
-                            atualizarEndereco(index, 'cep', e.target.value)
                           }
                         />
                       </CCol>
@@ -383,7 +458,7 @@ const PessoaEdit = () => {
                       </CCol>
                       <CCol md={2} className="mt-4">
                         <CFormCheck
-                          label="Disponível para lar temporário"
+                          label="Lar Temp."
                           checked={endereco.larTemporario}
                           onChange={(e) =>
                             atualizarEndereco(index, 'larTemporario', e.target.checked)
@@ -428,7 +503,7 @@ const PessoaEdit = () => {
                       variant="outline"
                       size="sm"
                       className="mt-2"
-                      onClick={() => removerEndereco(index, endereco.id)}
+                      onClick={() => confirmarRemocao('endereco', index, endereco.id)}
                     >
                       Remover Endereço
                     </CButton>
@@ -457,21 +532,32 @@ const PessoaEdit = () => {
                           }
                         >
                           <option value="">Selecione</option>
-                          <option value="Telefone">Telefone</option>
-                          <option value="Email">Email</option>
-                          <option value="WhatsApp">WhatsApp</option>
-                          {/* Outros tipos de contato */}
+                          <option value="telefone">Telefone</option>
+                          <option value="email">Email</option>
+                          <option value="whatsapp">WhatsApp</option>
                         </CFormSelect>
                       </CCol>
                       <CCol md={6}>
                         <CFormLabel>Valor</CFormLabel>
-                        <CFormInput
-                          type="text"
-                          value={contato.valor}
-                          onChange={(e) =>
-                            atualizarContato(index, 'valor', e.target.value)
-                          }
-                        />
+                        {contato.tipo === 'email' ? (
+                          <CFormInput
+                            type="email"
+                            value={contato.valor}
+                            onChange={(e) =>
+                              atualizarContato(index, 'valor', e.target.value)
+                            }
+                          />
+                        ) : (
+                          <InputMask
+                            mask="(99) 99999-9999"
+                            value={contato.valor}
+                            onChange={(e) =>
+                              atualizarContato(index, 'valor', e.target.value)
+                            }
+                          >
+                            {(inputProps) => <CFormInput {...inputProps} />}
+                          </InputMask>
+                        )}
                       </CCol>
                     </CRow>
                     <CButton
@@ -479,7 +565,7 @@ const PessoaEdit = () => {
                       variant="outline"
                       size="sm"
                       className="mt-2"
-                      onClick={() => removerContato(index, contato.id)}
+                      onClick={() => confirmarRemocao('contato', index, contato.id)}
                     >
                       Remover Contato
                     </CButton>
@@ -493,23 +579,42 @@ const PessoaEdit = () => {
                 >
                   Adicionar Contato
                 </CButton>
-                <CRow>
+                <CRow className='mt-3 mb-2'>
                   <CCol>
-                    <CButton color="success" type="submit" className="mt-4">
+                    <CButton color="success" type="submit" className="">
                       Atualizar
+                    </CButton>
+                  </CCol>
+                  <CCol className='d-flex justify-content-end'>
+                  <CButton color="secondary" onClick={() => navigate('/admin/pessoas')}>
+                      Voltar
                     </CButton>
                   </CCol>
                 </CRow>
               </CForm>
+              {erro && <CAlert color="danger">{erro}</CAlert>}
+              {sucesso && <CAlert color="success">{sucesso}</CAlert>}
             </CCardBody>
-            <CCardFooter>
-              <CButton color="secondary" onClick={() => navigate('/admin/pessoas')}>
-                Voltar
-              </CButton>
-            </CCardFooter>
           </CCard>
         </CCol>
       </CRow>
+
+      <CModal visible={showConfirmModal} onClose={() => setShowConfirmModal(false)}>
+        <CModalHeader closeButton>
+          <CModalTitle>Confirmar Remoção</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          Tem certeza que deseja remover este {deleteType === 'endereco' ? 'endereço' : 'contato'}?
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setShowConfirmModal(false)}>
+            Cancelar
+          </CButton>
+          <CButton color="danger" onClick={confirmarRemocaoElemento}>
+            Remover
+          </CButton>
+        </CModalFooter>
+      </CModal>
     </CContainer>
   );
 };

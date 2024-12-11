@@ -58,8 +58,8 @@ const PerguntaDeSeguranca = () => {
   };
 
   return (
-    <CContainer className="min-vh-100 d-flex flex-column justify-content-center align-items-center">
-      <CRow className="justify-content-center">
+    <CContainer className="">
+      <CRow className="">
         <CCol md={8}>
           <CCard className="p-4">
             <CCardBody>

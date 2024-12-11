@@ -20,6 +20,9 @@ import {
   CAlert,
 } from '@coreui/react';
 import authFetch from '../../../utils/authFetch';
+import CIcon from '@coreui/icons-react';
+import { cilPencil } from '@coreui/icons';
+import { Link } from 'react-router-dom';
 
 function AdocaoMain() {
   const [adocoes, setAdocoes] = useState([]);
@@ -155,17 +158,35 @@ function AdocaoMain() {
                   <tr key={adocao.id}>
                     <td>{adocao.id}</td>
                     <td>{formatDate(adocao.createdAt)}</td>
-                    <td>{adocao.animal ? adocao.animal.nome : 'N/A'}</td>
-                    <td>{adocao.pessoa ? adocao.pessoa.nome : 'N/A'}</td>
+                    <td>
+                      {adocao.animal && adocao.animal.id ? (
+                        <Link to={`/admin/animal/editar/${adocao.animal.id}`}>
+                          {adocao.animal.nome}
+                        </Link>
+                      ) : (
+                        'N/A'
+                      )}
+                    </td>
+                    <td>
+                      {adocao.pessoa && adocao.pessoa.id ? (
+                        <Link to={`/admin/pessoa/editar/${adocao.pessoa.id}`}>
+                          {adocao.pessoa.nome}
+                        </Link>
+                      ) : (
+                        'N/A'
+                      )}
+                    </td>
                     <td>{adocao.status_adocao ? adocao.status_adocao.nome : 'N/A'}</td>
                     <td>{adocao.observacao || ''}</td>
                     <td>
                       <CButton
                         color="primary"
-                        size="sm"
                         onClick={() => handleStatusChange(adocao)}
+                        className="me-2"
+                        variant="outline"
+                        size="sm"
                       >
-                        Alterar Status
+                        <CIcon icon={cilPencil} className="me-1" /> Editar
                       </CButton>
                     </td>
                   </tr>

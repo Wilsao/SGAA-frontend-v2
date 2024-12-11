@@ -94,7 +94,7 @@ function CargoForm() {
                   <CIcon icon={cilSave} className="me-1" />
                   {id ? 'Atualizar' : 'Cadastrar'}
                 </CButton>
-                <CButton color="secondary" onClick={() => navigate('admin/roles')}>
+                <CButton color="secondary" href={`#admin/cargo`}>
                   <CIcon icon={cilBan} className="me-1" />
                   Cancelar
                 </CButton>

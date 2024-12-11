@@ -51,7 +51,7 @@ function EspecieMain() {
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao remover espécie');
+        throw new Error(errorData.error || 'Não é possível excluir. Existem animais cadastrados com esta espécie.');
       }
       setEspecies(especies.filter((especie) => especie.id !== id));
       setShowModal(false);

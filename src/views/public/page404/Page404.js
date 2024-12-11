@@ -11,7 +11,7 @@ const Page404 = () => {
   };
 
   return (
-    <div className="d-flex flex-column align-items-center justify-content-center min-vh-100">
+    <div className="pt-5 d-flex flex-column align-items-center">
       <h1 className="display-1">404</h1>
       <p className="text-muted">A página que você está procurando não foi encontrada.</p>
       <CButton color="primary" onClick={handleBackToHome}>
