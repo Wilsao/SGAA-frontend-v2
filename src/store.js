@@ -7,6 +7,7 @@ console.log(localStorage.getItem('pessoaId'));
 console.log(localStorage.getItem('userEmail'));
 console.log(localStorage.getItem('userNome'));
 console.log(localStorage.getItem('userRole'));
+console.log(localStorage.getItem('userRoleName'));
 
 const uiSlice = createSlice({
   name: 'ui',
@@ -31,6 +32,7 @@ const authSlice = createSlice({
     userEmail: localStorage.getItem('userEmail') || null,
     userNome: localStorage.getItem('userNome') || null,
     userRole: localStorage.getItem('userRole') || '3',
+    userRoleName: localStorage.getItem('userRoleName'),
     hasSecurityQuestion: JSON.parse(localStorage.getItem('hasSecurityQuestion')) || false,
     error: null,
   },
@@ -43,6 +45,7 @@ const authSlice = createSlice({
       state.userEmail = action.payload.userEmail;
       state.userNome = action.payload.userNome;
       state.userRole = action.payload.userRole;
+      state.userRoleName = action.payload.userRoleName;
       state.hasSecurityQuestion = action.payload.hasSecurityQuestion;
       state.error = null;
 
@@ -52,6 +55,7 @@ const authSlice = createSlice({
       localStorage.setItem('userEmail', action.payload.userEmail);
       localStorage.setItem('userNome', action.payload.userNome);
       localStorage.setItem('userRole', action.payload.userRole);
+      localStorage.setItem('userRoleName', action.payload.userRoleName);
       localStorage.setItem(
         'hasSecurityQuestion',
         JSON.stringify(action.payload.hasSecurityQuestion)
@@ -64,6 +68,7 @@ const authSlice = createSlice({
       state.userEmail = null;
       state.userNome = null;
       state.userRole = '3';
+      state.userRoleName = null;
       state.hasSecurityQuestion = false;
       state.error = null;
 
@@ -73,6 +78,7 @@ const authSlice = createSlice({
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userNome');
       localStorage.removeItem('userRole');
+      localStorage.removeItem('userRoleName');
       localStorage.removeItem('hasSecurityQuestion');
     },
     setAuthError: (state, action) => {

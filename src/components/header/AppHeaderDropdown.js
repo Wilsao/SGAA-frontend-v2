@@ -16,10 +16,11 @@ import { cilTask, cilUser, cilAccountLogout } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
 
 import avatar8 from './../../assets/images/avatars/8.jpg';
-import { useDispatch, useSelector } from 'react-redux'; // Import useSelector
+import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../store';
 
 const AppHeaderDropdown = () => {
+  const userRoleName = useSelector((state) => state.auth.userRoleName);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -36,7 +37,7 @@ const AppHeaderDropdown = () => {
         <CAvatar src={avatar8} size="md" />
       </CDropdownToggle>
       <CDropdownMenu className="pt-0" placement="bottom-end">
-        <CDropdownHeader className="bg-body-secondary fw-semibold my-2">Administrador</CDropdownHeader>
+        <CDropdownHeader className="bg-body-secondary fw-semibold my-2">{userRoleName}</CDropdownHeader>
         <CDropdownItem href={`#/admin/usuario/editar/${userId}`}>
           <CIcon icon={cilUser} className="me-2" />
           Perfil

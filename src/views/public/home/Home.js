@@ -18,9 +18,8 @@ import {
   CModalBody,
   CModalFooter,
   CForm,
-  CInputGroup,
-  CFormLabel,
   CFormSelect,
+  CInputGroup,
   CAlert,
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
@@ -34,17 +33,12 @@ function Home() {
   const [selectedAnimalId, setSelectedAnimalId] = useState(null);
   const [adoptionError, setAdoptionError] = useState('');
   const [adoptionSuccess, setAdoptionSuccess] = useState('');
-  const [filtros, setFiltros] = useState({
-    especie_id: '',
-    sexo: '',
-    castrado: '',
-  });
   const [especies, setEspecies] = useState([]);
 
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
 
+  // Buscando espécies para o filtro opcional de espécie
   useEffect(() => {
     const fetchEspecies = async () => {
       try {
@@ -66,15 +60,17 @@ function Home() {
     return acc;
   }, {});
 
+  // Buscando apenas animais disponíveis (status_animal_id=1)
   useEffect(() => {
     const fetchAnimais = async () => {
       try {
         const response = await fetch('http://localhost:3001/animal?status_animal_id=1');
         if (!response.ok) {
-          throw new Error('Erro ao buscar animais');
+          throw new Error('Erro ao buscar animais disponíveis');
         }
         const data = await response.json();
 
+        // Adicionando imagens a cada animal
         const animaisComImagens = await Promise.all(
           data.map(async (animal) => {
             const imagesResponse = await fetch(`http://localhost:3001/animal/imagens/${animal.id}`);
@@ -89,11 +85,17 @@ function Home() {
 
         setAnimais(animaisComImagens);
       } catch (error) {
-        console.error('Erro ao buscar animais:', error);
+        console.error('Erro ao buscar animais disponíveis:', error);
       }
     };
     fetchAnimais();
   }, []);
+
+  const [filtros, setFiltros] = useState({
+    especie_id: '',
+    sexo: '',
+    castrado: '',
+  });
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -221,20 +223,6 @@ function Home() {
               </CFormSelect>
             </CInputGroup>
           </CCol>
-          <CCol md={4}>
-            <CInputGroup>
-              <CFormSelect
-                aria-label="Filtrar por Castração"
-                name="castrado"
-                value={filtros.castrado}
-                onChange={handleFilterChange}
-              >
-                <option value="">Todos</option>
-                <option value="1">Castrado</option>
-                <option value="0">Não Castrado</option>
-              </CFormSelect>
-            </CInputGroup>
-          </CCol>
         </CRow>
         <p className="mb-1">
           Foram encontrados {animaisFiltrados.length} animais disponíveis para adoção:
@@ -285,14 +273,12 @@ function Home() {
         </CRow>
       </CContainer>
 
-      {/* Adoption Confirmation Modal */}
       <CModal visible={showAdoptModal} onClose={() => setShowAdoptModal(false)}>
         <CModalHeader>
           <CModalTitle>Confirmar Adoção</CModalTitle>
         </CModalHeader>
         <CModalBody>
           Tem certeza que deseja aplicar para a adoção deste animal?
-
         </CModalBody>
         <CModalFooter>
           <CButton color="secondary" onClick={() => setShowAdoptModal(false)}>

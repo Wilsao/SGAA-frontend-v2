@@ -79,7 +79,7 @@ const EsqueciSenha = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: userId, resposta, novaSenha }),
+        body: JSON.stringify({ usuario_id: userId, resposta, senha: novaSenha }),
       });
 
       if (response.ok) {

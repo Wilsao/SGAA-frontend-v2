@@ -77,17 +77,29 @@ const Login = () => {
           const userData = await userResponse.json();
           console.log('Dados do usuário obtidos:', userData);
 
-          dispatch(
-            loginUser({
-              token: token,
-              userId: userData.id,
-              pessoaId: userData.pessoa_id,
-              userNome: userData.nome,
-              userEmail: userData.email,
-              userRole: userData.tipo_usuario_id.toString(),
-              hasSecurityQuestion: !!userData.pergunta,
-            })
-          );
+          const roleResponse = await fetch('http://localhost:3001/tipousuario/'+userData.tipo_usuario_id, {
+            method: 'GET',
+          });
+          if(roleResponse.ok){
+
+            const roleData = await roleResponse.json();
+            console.log('Dados do usuário obtidos:', roleData.nome);
+
+            dispatch(
+              loginUser({
+                token: token,
+                userId: userData.id,
+                pessoaId: userData.pessoa_id,
+                userNome: userData.nome,
+                userEmail: userData.email,
+                userRole: userData.tipo_usuario_id.toString(),
+                userRoleName: roleData.nome,
+                hasSecurityQuestion: !!userData.pergunta,
+              })
+            );
+          } else{
+            dispatch(setAuthError('Erro ao obter dados de permissão do usuário.'));
+          }
         } else {
           dispatch(setAuthError('Erro ao obter dados do usuário.'));
         }

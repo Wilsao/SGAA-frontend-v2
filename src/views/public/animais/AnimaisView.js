@@ -106,7 +106,7 @@ function AnimaisView() {
             <CButton
               color="warning"
               className="ms-2"
-              onClick={() => navigate(`/admin/animais/editar/${animal.id}`)}
+              href={`#/admin/animal/editar/${animal.id}`}
             >
               <CIcon icon={cilPencil} /> Editar
             </CButton>
@@ -163,10 +163,6 @@ function AnimaisView() {
                   <strong>Deficiência:</strong> {animal.deficiencia || 'Nenhuma'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Data da Ocorrência:</strong>{' '}
-                  {animal.data_ocorrencia ? new Date(animal.data_ocorrencia).toLocaleDateString() : 'Não Informada'}
-                </CListGroupItem>
-                <CListGroupItem>
                   <strong>Idade:</strong> {calcularIdade(animal.data_nascimento_aproximada)}
                 </CListGroupItem>
                 <CListGroupItem>
@@ -191,16 +187,6 @@ function AnimaisView() {
                     ? animal.responsavel.contatos.map((contato, idx) => (
                         <span key={idx}>
                           {contato.tipo}: {contato.valor}{' '}
-                        </span>
-                      ))
-                    : 'Não Informado'}
-                </CListGroupItem>
-                <CListGroupItem>
-                  <strong>Endereço do Cuidador:</strong>{' '}
-                  {animal.responsavel && animal.responsavel.enderecos && animal.responsavel.enderecos.length > 0
-                    ? animal.responsavel.enderecos.map((endereco, idx) => (
-                        <span key={idx}>
-                          {endereco.logradouro}, {endereco.numero}, {endereco.cidade}, {endereco.estado}, {endereco.cep}{' '}
                         </span>
                       ))
                     : 'Não Informado'}
