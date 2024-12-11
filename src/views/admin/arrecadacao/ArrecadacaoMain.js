@@ -1,4 +1,5 @@
 // src/views/admin/arrecadacao/ArrecadacaoMain.js
+
 import React, { useState, useEffect } from 'react';
 import {
   CContainer,
@@ -48,6 +49,10 @@ function ArrecadacaoMain() {
         }
 
         const data = await response.json();
+
+        // Ordenar eventos do mais recente para o mais antigo
+        data.sort((a, b) => new Date(b.data_evento) - new Date(a.data_evento));
+
         setEventos(data);
       } catch (error) {
         console.error('Erro ao buscar eventos de arrecadação:', error);
@@ -99,7 +104,7 @@ function ArrecadacaoMain() {
 
   const eventosFiltrados = filtrarEventos();
 
-  // Ordenar eventosFiltrados por data (da mais recente para a mais antiga)
+  // Ordenar novamente após filtrar
   eventosFiltrados.sort((a, b) => new Date(b.data_evento) - new Date(a.data_evento));
 
   const quantidadeEventos = eventosFiltrados.length;
@@ -125,7 +130,7 @@ function ArrecadacaoMain() {
             <h2>Eventos de Arrecadação</h2>
           </CCol>
           <CCol className="text-end">
-            <CButton color="success" href="#/admin/arrecadacao/novo" component={Link}>
+            <CButton color="success" href="#/admin/arrecadacao/novo">
               Cadastrar evento +
             </CButton>
           </CCol>
@@ -204,6 +209,7 @@ function ArrecadacaoMain() {
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Nome do Evento</th>
                   <th>Data do Evento</th>
                   <th>Valor Arrecadado</th>
                   <th>Descrição</th>
@@ -214,6 +220,7 @@ function ArrecadacaoMain() {
                 {eventosFiltrados.map((evento) => (
                   <tr key={evento.id}>
                     <td>{evento.id}</td>
+                    <td>{evento.nome_evento}</td>
                     <td>{new Date(evento.data_evento).toLocaleDateString()}</td>
                     <td>R$ {parseFloat(evento.valor_arrecadado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>{evento.descricao}</td>
@@ -221,7 +228,6 @@ function ArrecadacaoMain() {
                       <CButton
                         color="primary"
                         href={`#/admin/arrecadacao/editar/${evento.id}`}
-                        component={Link}
                         className="me-2"
                       >
                         <CIcon icon={cilPencil} /> Editar

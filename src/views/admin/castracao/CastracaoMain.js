@@ -1,4 +1,5 @@
 // src/views/admin/castracao/CastracaoMain.js
+
 import React, { useState, useEffect } from 'react';
 import {
   CContainer,
@@ -21,10 +22,8 @@ import {
   CFormLabel,
   CFormInput,
 } from '@coreui/react';
-import { Link } from 'react-router-dom';
 import CIcon from '@coreui/icons-react';
 import { cilPencil, cilBan } from '@coreui/icons';
-
 import authFetch from '../../../utils/authFetch';
 
 function CastracaoMain() {
@@ -36,6 +35,27 @@ function CastracaoMain() {
     dataFinal: '',
   });
   const [errorMessage, setErrorMessage] = useState('');
+  const [especiesMap, setEspeciesMap] = useState({});
+
+  useEffect(() => {
+    const fetchEspecies = async () => {
+      try {
+        const response = await authFetch('http://localhost:3001/especie');
+        if (!response.ok) {
+          throw new Error('Erro ao buscar espécies');
+        }
+        const data = await response.json();
+        const map = data.reduce((acc, esp) => {
+          acc[esp.id] = esp.nome;
+          return acc;
+        }, {});
+        setEspeciesMap(map);
+      } catch (error) {
+        console.error('Erro ao buscar espécies:', error);
+      }
+    };
+    fetchEspecies();
+  }, []);
 
   useEffect(() => {
     const fetchEventos = async () => {
@@ -50,6 +70,10 @@ function CastracaoMain() {
           throw new Error('Erro ao buscar eventos de castração');
         }
         const data = await response.json();
+
+        // Ordenar por data_evento decrescente
+        data.sort((a, b) => new Date(b.data_evento) - new Date(a.data_evento));
+
         setEventos(data);
       } catch (error) {
         console.error('Erro ao buscar eventos de castração:', error);
@@ -100,7 +124,17 @@ function CastracaoMain() {
 
   const eventosFiltrados = filtrarEventos();
 
-  // Agrupar eventos por data
+  // Calcular total de animais castrados corretamente
+  const totalCastracoes = eventosFiltrados.reduce((acc, evento) => {
+    if (evento.animal_id) {
+      return acc + 1; // se houver um animal_id, conta como 1
+    } else {
+      // se não houver, soma quantidade_macho + quantidade_femea
+      return acc + evento.quantidade_macho + evento.quantidade_femea;
+    }
+  }, 0);
+
+  // Agrupar eventos por data (após filtrar e ordenar)
   const eventosPorData = eventosFiltrados.reduce((acc, evento) => {
     const data = new Date(evento.data_evento).toLocaleDateString();
     if (!acc[data]) {
@@ -110,10 +144,13 @@ function CastracaoMain() {
     return acc;
   }, {});
 
-  const datasOrdenadas = Object.keys(eventosPorData).sort((a, b) => new Date(b) - new Date(a));
+  // datasOrdenadas já vêm ordenadas porque eventos já foram ordenados
+  // mas iremos reordenar pelas keys:
+  const datasOrdenadas = Object.keys(eventosPorData).sort((a, b) => {
+    return new Date(b) - new Date(a);
+  });
 
   const quantidadeEventos = Object.keys(eventosPorData).length;
-  const totalCastracoes = eventosFiltrados.length;
 
   const handleExportPDF = () => {
     const { dataInicial, dataFinal } = filtros;
@@ -135,7 +172,7 @@ function CastracaoMain() {
             <h2>Eventos de Castração</h2>
           </CCol>
           <CCol className="text-end">
-            <CButton color="success" to="/admin/castracao/novo" component={Link}>
+            <CButton color="success" href="#/admin/castracao/novo">
               Cadastrar evento +
             </CButton>
           </CCol>
@@ -185,7 +222,7 @@ function CastracaoMain() {
             <p className="mb-0">Dias de castração encontrados: {quantidadeEventos}</p>
           </CCol>
           <CCol>
-            <p className="mb-0">Total de Castrações: {totalCastracoes}</p>
+            <p className="mb-0">Total de Animais Castrados: {totalCastracoes}</p>
           </CCol>
         </CRow>
       </CContainer>
@@ -197,39 +234,61 @@ function CastracaoMain() {
               {datasOrdenadas.map((data, index) => (
                 <CAccordionItem key={index} itemKey={index}>
                   <CAccordionHeader>
-                    {data} - Total de Castrações: {eventosPorData[data].length}
+                    {data} - Total de Registros: {eventosPorData[data].length}
                   </CAccordionHeader>
                   <CAccordionBody>
                     <CTable hover responsive>
                       <thead>
                         <tr>
                           <th>ID</th>
+                          <th>Animal / Espécie</th>
+                          <th>Quantidade Castrada</th>
                           <th>Local do Evento</th>
                           <th>Descrição</th>
                           <th>Ações</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {eventosPorData[data].map((evento) => (
-                          <tr key={evento.id}>
-                            <td>{evento.id}</td>
-                            <td>{evento.local_evento}</td>
-                            <td>{evento.descricao}</td>
-                            <td className="d-flex align-items-center">
-                              <CButton
-                                color="primary"
-                                to={`/admin/castracao/editar/${evento.id}`}
-                                component={Link}
-                                className="m-1"
-                              >
-                                Editar <CIcon icon={cilPencil} />
-                              </CButton>
-                              <CButton color="danger" onClick={() => handleShowModal(evento.id)} className="m-1">
-                                Cancelar <CIcon icon={cilBan} />
-                              </CButton>
-                            </td>
-                          </tr>
-                        ))}
+                        {eventosPorData[data].map((evento) => {
+                          let descricaoAnimal;
+                          let quantidadeStr;
+                          if (evento.animal_id) {
+                            // Link para edição do animal
+                            const nomeAnimal = evento.animal && evento.animal.nome ? evento.animal.nome : `Animal ID: ${evento.animal_id}`;
+                            descricaoAnimal = (
+                              <a href={`#/admin/animal/editar/${evento.animal_id}`}>
+                                {nomeAnimal}
+                              </a>
+                            );
+                            quantidadeStr = '1';
+                          } else {
+                            const especieNome = especiesMap[evento.especie_id] || 'Espécie Desconhecida';
+                            descricaoAnimal = especieNome;
+                            quantidadeStr = `${evento.quantidade_macho + evento.quantidade_femea}`;
+                          }
+
+                          return (
+                            <tr key={evento.id}>
+                              <td>{evento.id}</td>
+                              <td>{descricaoAnimal}</td>
+                              <td>{quantidadeStr}</td>
+                              <td>{evento.local_evento}</td>
+                              <td>{evento.descricao}</td>
+                              <td className="d-flex align-items-center">
+                                <CButton
+                                  color="primary"
+                                  href={`#/admin/castracao/editar/${evento.id}`}
+                                  className="m-1"
+                                >
+                                  Editar <CIcon icon={cilPencil} />
+                                </CButton>
+                                <CButton color="danger" onClick={() => handleShowModal(evento.id)} className="m-1">
+                                  Cancelar <CIcon icon={cilBan} />
+                                </CButton>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </CTable>
                   </CAccordionBody>

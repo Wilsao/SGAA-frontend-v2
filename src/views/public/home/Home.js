@@ -94,7 +94,7 @@ function Home() {
   const [filtros, setFiltros] = useState({
     especie_id: '',
     sexo: '',
-    castrado: '',
+    castracao: '',
   });
 
   const handleFilterChange = (e) => {
@@ -108,7 +108,7 @@ function Home() {
         filtros.especie_id === '' || animal.especie_id === parseInt(filtros.especie_id);
       const matchesSexo = filtros.sexo === '' || animal.sexo === filtros.sexo;
       const matchesCastrado =
-        filtros.castrado === '' || (animal.castrado ? '1' : '0') === filtros.castrado;
+        filtros.castracao === '' || (animal.castracao ? '1' : '0') === filtros.castracao;
 
       return matchesEspecie && matchesSexo && matchesCastrado;
     });
@@ -250,7 +250,7 @@ function Home() {
                       <br />
                       <strong>Sexo:</strong> {animal.sexo === 'M' ? 'Macho' : 'Fêmea'}
                       <br />
-                      <strong>Castrado:</strong> {animal.castrado ? 'Sim' : 'Não'}
+                      <strong>Castrado:</strong> {animal.castracao ? 'Sim' : 'Não'}
                       <br />
                       <strong>Idade:</strong> {calcularIdade(animal.data_nascimento_aproximada)}
                       <br />

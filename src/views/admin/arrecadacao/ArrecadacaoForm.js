@@ -25,6 +25,7 @@ function ArrecadacaoForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [evento, setEvento] = useState({
+    nome_evento: '',
     data_evento: '',
     valor_arrecadado: '',
     descricao: '',
@@ -45,17 +46,12 @@ function ArrecadacaoForm() {
           }
           const data = await response.json();
 
-          console.log('Dados do evento:', data);
-
-          const eventoData = data.evento || data;
-
-          eventoData.data_evento = eventoData.data_evento
-            ? new Date(eventoData.data_evento).toISOString().split('T')[0]
+          data.data_evento = data.data_evento
+            ? new Date(data.data_evento).toISOString().split('T')[0]
             : '';
+          data.valor_arrecadado = data.valor_arrecadado ? parseFloat(data.valor_arrecadado) : '';
 
-          eventoData.valor_arrecadado = eventoData.valor_arrecadado ? parseFloat(eventoData.valor_arrecadado) : '';
-
-          setEvento(eventoData);
+          setEvento(data);
         } catch (error) {
           console.error('Erro ao buscar evento:', error);
           setErrorMessage('Erro ao buscar evento.');
@@ -79,10 +75,32 @@ function ArrecadacaoForm() {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+
+    if (!evento.nome_evento) {
+      setErrorMessage('O nome do evento é obrigatório.');
+      return;
+    }
+
+    if (!evento.data_evento) {
+      setErrorMessage('A data do evento é obrigatória.');
+      return;
+    }
+
+    if (evento.valor_arrecadado === '') {
+      setErrorMessage('O valor arrecadado é obrigatório.');
+      return;
+    }
+
     try {
+      const usuarioId = localStorage.getItem('userId');
+      if (!usuarioId) {
+        setErrorMessage('Usuário não identificado. Faça login novamente.');
+        return;
+      }
+
       const eventoData = {
         ...evento,
-        valor_arrecadado: evento.valor_arrecadado,
+        usuario_id: parseInt(usuarioId, 10),
       };
 
       const response = await authFetch(
@@ -116,9 +134,21 @@ function ArrecadacaoForm() {
             <CCardBody>
               <h2>{id ? 'Editar Evento de Arrecadação' : 'Cadastrar Evento de Arrecadação'}</h2>
               <CForm onSubmit={handleSubmit}>
-                {/* Mensagens de Erro e Sucesso */}
                 {errorMessage && <CAlert color="danger">{errorMessage}</CAlert>}
                 {successMessage && <CAlert color="success">{successMessage}</CAlert>}
+
+                <CRow className="mb-3">
+                  <CCol md={12}>
+                    <CFormLabel>Nome do Evento</CFormLabel>
+                    <CFormInput
+                      type="text"
+                      name="nome_evento"
+                      value={evento.nome_evento}
+                      onChange={handleChange}
+                      required
+                    />
+                  </CCol>
+                </CRow>
 
                 <CRow className="mb-3">
                   <CCol md={6}>
@@ -156,7 +186,6 @@ function ArrecadacaoForm() {
                       name="descricao"
                       value={evento.descricao}
                       onChange={handleChange}
-                      required
                     />
                   </CCol>
                 </CRow>

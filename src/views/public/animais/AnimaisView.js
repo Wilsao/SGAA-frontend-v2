@@ -126,9 +126,6 @@ function AnimaisView() {
                       src={`http://localhost:3001${imagem.url}`}
                       alt={`Imagem ${index + 1}`}
                     />
-                    <CCarouselCaption className="d-none d-md-block">
-                      <h5>{animal.nome}</h5>
-                    </CCarouselCaption>
                   </CCarouselItem>
                 ))}
               </CCarousel>
@@ -175,13 +172,13 @@ function AnimaisView() {
                   <strong>Condição do Resgate:</strong> {animal.condicao_resgate || 'Não Informada'}
                 </CListGroupItem>
                 <CListGroupItem>
-                  <strong>Castração:</strong> {animal.castracao ? 'Sim' : 'Não'}
+                  <strong>Castrado:</strong> {animal.castracao ? 'Sim' : 'Não'}
                 </CListGroupItem>
                 <CListGroupItem>
                   <strong>Cuidador:</strong>{' '}
                   {animal.responsavel ? animal.responsavel.nome : 'Não Informado'}
                 </CListGroupItem>
-                <CListGroupItem>
+                {/* <CListGroupItem>
                   <strong>Contatos do Cuidador:</strong>{' '}
                   {animal.responsavel && animal.responsavel.contatos && animal.responsavel.contatos.length > 0
                     ? animal.responsavel.contatos.map((contato, idx) => (
@@ -190,7 +187,7 @@ function AnimaisView() {
                         </span>
                       ))
                     : 'Não Informado'}
-                </CListGroupItem>
+                </CListGroupItem> */}
               </CListGroup>
 
               {animal.statusAnimal && animal.statusAnimal.nome === 'Disponível' && (

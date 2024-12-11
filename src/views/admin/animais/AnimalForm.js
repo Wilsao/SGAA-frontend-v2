@@ -1,5 +1,6 @@
 // src/views/admin/animais/AnimalForm.js
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   CContainer,
@@ -13,10 +14,15 @@ import {
   CFormInput,
   CFormSelect,
   CAlert,
+  CFormTextarea,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter
 } from "@coreui/react";
 import CIcon from '@coreui/icons-react';
 import { cilSave, cilBan, cilTrash } from '@coreui/icons';
-
 import authFetch from '../../../utils/authFetch';
 import axios from 'axios';
 
@@ -42,18 +48,25 @@ const AnimalForm = () => {
     condicao_resgate: "",
     status_animal_id: "",
     especie_id: "",
+    castracao: "",
     responsavel_id: "",
   });
 
   const [imagem, setImagem] = useState(null);
 
+  const prevCastracaoRef = useRef(animal.castracao);
+
+  useEffect(() => {
+    prevCastracaoRef.current = animal.castracao;
+  }, [animal.castracao]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [especiesResponse, statusAnimaisResponse, cuidadoresResponse] = await Promise.all([
-          authFetch("http://localhost:3001/especie", { method: 'GET' }),
-          authFetch("http://localhost:3001/statusanimal", { method: 'GET' }),
-          authFetch("http://localhost:3001/cuidador", { method: 'GET' }),
+          authFetch("http://localhost:3001/especie"),
+          authFetch("http://localhost:3001/statusanimal"),
+          authFetch("http://localhost:3001/cuidador"),
         ]);
 
         if (!especiesResponse.ok) throw new Error('Erro ao buscar espécies');
@@ -80,10 +93,7 @@ const AnimalForm = () => {
     if (id) {
       const fetchAnimal = async () => {
         try {
-          const response = await authFetch(`http://localhost:3001/animal/${id}`, {
-            method: 'GET',
-          });
-
+          const response = await authFetch(`http://localhost:3001/animal/${id}`);
           if (!response.ok) throw new Error("Erro ao buscar animal");
           const data = await response.json();
 
@@ -106,24 +116,25 @@ const AnimalForm = () => {
             condicao_resgate: data.condicao_resgate || "",
             status_animal_id: data.status_animal_id || "",
             especie_id: data.especie_id || "",
+            castracao: data.castracao ? "true" : "false",
             responsavel_id: data.responsavel_id || "",
           });
 
-          const imagesResponse = await authFetch(`http://localhost:3001/animal/imagens/${id}`, {
-            method: 'GET',
-          });
+          prevCastracaoRef.current = data.castracao ? "true" : "false";
+
+          const imagesResponse = await authFetch(`http://localhost:3001/animal/imagens/${id}`);
           if (imagesResponse.ok) {
             const imagesData = await imagesResponse.json();
             setImagens(imagesData);
-            // console.log(imagesData);
-          } else {
-            // setImagens([]);
           }
         } catch (error) {
           setErrorMessage("Erro ao buscar dados do animal.");
         }
       };
       fetchAnimal();
+    } else {
+      // Novo animal
+      prevCastracaoRef.current = "false";
     }
   }, [id]);
 
@@ -134,6 +145,60 @@ const AnimalForm = () => {
 
   const handleImageChange = (e) => {
     setImagem(e.target.files[0]);
+  };
+
+  const [showCastracaoModal, setShowCastracaoModal] = useState(false);
+  const [castracaoData, setCastracaoData] = useState({
+    data_evento: '',
+    local_evento: '',
+    descricao: ''
+  });
+
+  const handleCastracaoChange = (e) => {
+    const { name, value } = e.target;
+    setCastracaoData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCastracaoSubmit = async () => {
+    try {
+      const usuarioId = localStorage.getItem('userId');
+      if (!usuarioId) {
+        setErrorMessage('Usuário não identificado. Faça login novamente.');
+        return;
+      }
+
+      const payload = {
+        data_evento: castracaoData.data_evento,
+        local_evento: castracaoData.local_evento,
+        descricao: castracaoData.descricao,
+        animal_id: parseInt(id, 10),
+        usuario_id: parseInt(usuarioId, 10),
+        especie_id: parseInt(animal.especie_id, 10),
+        quantidade_macho: 0,
+        quantidade_femea: 0,
+        status: true,
+      };
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3001/castracao', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Erro ao salvar evento de castração do animal');
+      }
+      setShowCastracaoModal(false);
+      setSuccessMessage('Evento de castração do animal registrado com sucesso!');
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(error.message || 'Erro ao registrar castração do animal.');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -147,7 +212,10 @@ const AnimalForm = () => {
       const response = await authFetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(animal),
+        body: JSON.stringify({
+          ...animal,
+          castracao: animal.castracao === "true",
+        }),
       });
 
       if (!response.ok) {
@@ -179,12 +247,37 @@ const AnimalForm = () => {
         if (imageResponse.status !== 201 && imageResponse.status !== 200) {
           throw new Error('Erro ao fazer upload da imagem');
         } else {
-          console.log('Image upload response:', imageResponse.data);
           setImagens([...imagens, imageResponse.data]);
         }
       }
 
       setSuccessMessage(`Animal ${id ? "atualizado" : "cadastrado"} com sucesso!`);
+
+      const prevCastracao = prevCastracaoRef.current;
+      const currentCastracao = animal.castracao;
+
+      // Se castracao mudou de false -> true, ou se é um novo animal (sem id antes) e castracao é true
+      if (currentCastracao === "true" && (prevCastracao === "false" || !id)) {
+        // Definir o animal_id na castracaoData e abrir modal
+        setCastracaoData({
+          data_evento: '',
+          local_evento: '',
+          descricao: ''
+        });
+        // Navegar garante id?
+        if (!id) {
+          // Se é criação, precisamos do ID retornado (savedAnimal.id)
+          navigate(`/admin/animal/editar/${savedAnimal.id}`, { replace: true });
+          // Aguarde um microtask para abrir o modal (garantir que o navigate atualize a URL)
+          setTimeout(() => {
+            setShowCastracaoModal(true);
+          }, 100);
+        } else {
+          // Edição: já temos id
+          setShowCastracaoModal(true);
+        }
+      }
+
     } catch (error) {
       console.error("Erro ao salvar animal:", error);
       setErrorMessage(error.response?.data?.error || error.message || "Erro ao salvar animal.");
@@ -261,7 +354,7 @@ const AnimalForm = () => {
                       required
                     />
                   </CCol>
-                  <CCol md={6}>
+                  <CCol md={3}>
                     <CFormLabel>Espécie</CFormLabel>
                     <CFormSelect
                       name="especie_id"
@@ -275,6 +368,19 @@ const AnimalForm = () => {
                           {e.nome}
                         </option>
                       ))}
+                    </CFormSelect>
+                  </CCol>
+                  <CCol md={3}>
+                    <CFormLabel>Castrado</CFormLabel>
+                    <CFormSelect
+                      name="castracao"
+                      value={animal.castracao}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Selecione</option>
+                      <option value="true">Sim</option>
+                      <option value="false">Não</option>
                     </CFormSelect>
                   </CCol>
                 </CRow>
@@ -369,6 +475,7 @@ const AnimalForm = () => {
                       name="responsavel_id"
                       value={animal.responsavel_id || ""}
                       onChange={handleChange}
+                      required
                     >
                       <option value="">Selecione</option>
                       {cuidadores.map((c) => (
@@ -425,12 +532,51 @@ const AnimalForm = () => {
                 <CButton color="secondary" onClick={() => navigate("/admin/animais")}>
                   <CIcon icon={cilBan} className="me-1" /> Cancelar
                 </CButton>
-
               </CForm>
             </CCardBody>
           </CCard>
         </CCol>
       </CRow>
+
+      <CModal visible={showCastracaoModal} onClose={() => setShowCastracaoModal(false)}>
+        <CModalHeader closeButton>
+          <CModalTitle>Registrar Castração do Animal</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          <CForm>
+            <CFormLabel>Data do Evento</CFormLabel>
+            <CFormInput
+              type="date"
+              name="data_evento"
+              value={castracaoData.data_evento}
+              onChange={handleCastracaoChange}
+              required
+            />
+            <CFormLabel className="mt-3">Local do Evento</CFormLabel>
+            <CFormInput
+              type="text"
+              name="local_evento"
+              value={castracaoData.local_evento}
+              onChange={handleCastracaoChange}
+            />
+            <CFormLabel className="mt-3">Descrição</CFormLabel>
+            <CFormTextarea
+              rows="3"
+              name="descricao"
+              value={castracaoData.descricao}
+              onChange={handleCastracaoChange}
+            />
+          </CForm>
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setShowCastracaoModal(false)}>
+            Não Registrar
+          </CButton>
+          <CButton color="primary" onClick={handleCastracaoSubmit}>
+            Registrar Castração
+          </CButton>
+        </CModalFooter>
+      </CModal>
     </CContainer>
   );
 };
