@@ -151,7 +151,7 @@ function CastracaoForm() {
   return (
     <CContainer className="mt-3">
       <CRow className="justify-content-center">
-        <CCol md="8">
+        <CCol md="12">
           <CCard>
             <CCardBody>
               <h2>{isEdit ? 'Editar Evento de Castração' : 'Cadastrar Evento de Castração'}</h2>

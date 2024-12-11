@@ -65,7 +65,7 @@ function UsuarioMain() {
   const handleDelete = async (id) => {
     try {
       const usuarioId = localStorage.getItem('userId');
-      const response = await authFetch(`http://localhost:3001/usuario/${id}/${usuarioId}`, { method: 'DELETE' });
+      const response = await authFetch(`http://localhost:3001/usuario/${usuarioId}/${id}`, { method: 'DELETE' });
       if (!response.ok) {
         throw new Error('Erro ao excluir usuário');
       }

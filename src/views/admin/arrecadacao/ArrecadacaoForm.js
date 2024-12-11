@@ -129,7 +129,7 @@ function ArrecadacaoForm() {
   return (
     <CContainer className="mt-3">
       <CRow className="justify-content-center">
-        <CCol md="8">
+        <CCol md="12">
           <CCard>
             <CCardBody>
               <h2>{id ? 'Editar Evento de Arrecadação' : 'Cadastrar Evento de Arrecadação'}</h2>

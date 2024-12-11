@@ -48,7 +48,7 @@ function UsuarioForm() {
   const [showResposta, setShowResposta] = useState(false);
 
   if(userRole != 1 && userId != id){
-    navigate('/home');
+    navigate('/unauthorized');
   }
 
   useEffect(() => {
@@ -293,10 +293,10 @@ function UsuarioForm() {
                   <CIcon icon={cilSave} className="me-1" />
                   {id ? 'Atualizar' : 'Cadastrar'}
                 </CButton>
-                <CButton color="secondary" onClick={() => navigate('/admin/usuarios')}>
+                {/* <CButton color="secondary" onClick={() => navigate('/admin/usuarios')}>
                   <CIcon icon={cilBan} className="me-1" />
                   Cancelar
-                </CButton>
+                </CButton> */}
               </CForm>
             </CCardBody>
           </CCard>

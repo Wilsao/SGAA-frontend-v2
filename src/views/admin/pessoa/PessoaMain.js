@@ -125,7 +125,7 @@ const PessoaMain = () => {
                     <CTableHeaderCell>Sexo</CTableHeaderCell>
                     <CTableHeaderCell>Data Nasc.</CTableHeaderCell>
                     <CTableHeaderCell>Cuidador</CTableHeaderCell>
-                    <CTableHeaderCell>Status</CTableHeaderCell>
+                    {/* <CTableHeaderCell>Status</CTableHeaderCell> */}
                     <CTableHeaderCell>Ações</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
@@ -141,9 +141,9 @@ const PessoaMain = () => {
                       <CTableDataCell>
                         {pessoa.cuidador ? 'Sim' : 'Não'}
                       </CTableDataCell>
-                      <CTableDataCell>
+                      {/* <CTableDataCell>
                         {pessoa.status ? 'Ativo' : 'Inativo'}
-                      </CTableDataCell>
+                      </CTableDataCell> */}
                       <CTableDataCell>
                         <CButton
                           color="primary"

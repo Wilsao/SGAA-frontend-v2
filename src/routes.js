@@ -59,7 +59,7 @@ const routes = [
     path: '/admin',
     children: [
       { path: 'dashboard', name: 'Dashboard', element: <DashboardMain />, roles: ['1', '2'] },
-      { path: 'usuarios', name: 'Lista de Usuarios', element: <UsuarioMain />, roles: ['1', '2'] },
+      { path: 'usuarios', name: 'Lista de Usuarios', element: <UsuarioMain />, roles: ['1'] },
       { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['1', '2'] },
       { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['1', '2', '3'] },
       { path: 'animais', name: 'Lista de Animais', element: <AnimalMain />, roles: ['1', '2'] },
@@ -77,7 +77,7 @@ const routes = [
       { path: 'especies', name: 'Lista de Espécies', element: <EspecieMain />, roles: ['1', '2'] },
       { path: 'especie/novo', name: 'Cadastro de Espécie', element: <EspecieForm />, roles: ['1', '2'] },
       { path: 'especie/editar/:id', name: 'Editar Espécie', element: <EspecieForm />, roles: ['1', '2'] },
-      { path: 'usuarios', name: 'Lista de Usuários', element: <UsuarioMain />, roles: ['1', '2'] },
+      { path: 'usuarios', name: 'Lista de Usuários', element: <UsuarioMain />, roles: ['1'] },
       // { path: 'usuario/novo', name: 'Cadastro de Usuário', element: <UsuarioForm />, roles: ['1', '2'] },
       // { path: 'usuario/editar/:id', name: 'Editar Usuário', element: <UsuarioForm />, roles: ['1', '2'] },
       { path: 'cargo', name: 'Lista de Cargos', element: <CargoMain />, roles: ['1'] },

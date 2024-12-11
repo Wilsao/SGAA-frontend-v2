@@ -205,6 +205,7 @@ const AnimalForm = () => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
+
     try {
       const url = `http://localhost:3001/animal${id ? `/${id}` : ""}`;
       const method = id ? "PUT" : "POST";
@@ -214,7 +215,7 @@ const AnimalForm = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...animal,
-          castracao: animal.castracao === "true",
+          castracao: animal.castracao == "true",
         }),
       });
 
@@ -255,25 +256,24 @@ const AnimalForm = () => {
 
       const prevCastracao = prevCastracaoRef.current;
       const currentCastracao = animal.castracao;
+      console.log(prevCastracao);
+      console.log(currentCastracao);
 
-      // Se castracao mudou de false -> true, ou se é um novo animal (sem id antes) e castracao é true
-      if (currentCastracao === "true" && (prevCastracao === "false" || !id)) {
-        // Definir o animal_id na castracaoData e abrir modal
+      if (currentCastracao == "true") {
         setCastracaoData({
           data_evento: '',
           local_evento: '',
           descricao: ''
         });
-        // Navegar garante id?
+
         if (!id) {
-          // Se é criação, precisamos do ID retornado (savedAnimal.id)
+          // Caso de novo animal
           navigate(`/admin/animal/editar/${savedAnimal.id}`, { replace: true });
-          // Aguarde um microtask para abrir o modal (garantir que o navigate atualize a URL)
           setTimeout(() => {
             setShowCastracaoModal(true);
           }, 100);
         } else {
-          // Edição: já temos id
+          // Caso de edição: já temos ID, só mostrar o modal
           setShowCastracaoModal(true);
         }
       }
@@ -540,11 +540,11 @@ const AnimalForm = () => {
 
       <CModal visible={showCastracaoModal} onClose={() => setShowCastracaoModal(false)}>
         <CModalHeader closeButton>
-          <CModalTitle>Registrar Castração do Animal</CModalTitle>
+          <CModalTitle>Deseja lançar a castração do animal?</CModalTitle>
         </CModalHeader>
         <CModalBody>
           <CForm>
-            <CFormLabel>Data do Evento</CFormLabel>
+            <CFormLabel>Data da castração</CFormLabel>
             <CFormInput
               type="date"
               name="data_evento"
@@ -552,7 +552,7 @@ const AnimalForm = () => {
               onChange={handleCastracaoChange}
               required
             />
-            <CFormLabel className="mt-3">Local do Evento</CFormLabel>
+            <CFormLabel className="mt-3">Local</CFormLabel>
             <CFormInput
               type="text"
               name="local_evento"
